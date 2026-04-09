@@ -15,12 +15,20 @@ export function ClosedModal() {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    // Показываем только один раз за визит (сессию)
+    const alreadyShown = sessionStorage.getItem("closed-modal-shown")
+    if (alreadyShown) return
+
     const checkWorkingHours = () => {
       const now = new Date()
       const hours = now.getHours()
       // Working hours: 10:00 - 22:00
-      const isOpen = hours >= 10 && hours < 22
-      setIsOpen(!isOpen)
+      const isOpenNow = hours >= 10 && hours < 22
+
+      if (!isOpenNow) {
+        setIsOpen(true)
+        sessionStorage.setItem("closed-modal-shown", "true")
+      }
     }
 
     checkWorkingHours()
