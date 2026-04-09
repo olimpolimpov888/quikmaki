@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck } from "lucide-react"
+import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -20,13 +20,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useCartStore } from "@/lib/cart-store"
+import { useAuthStore } from "@/lib/auth-store"
 import { cities } from "@/lib/data"
 import { CartDrawer } from "./cart-drawer"
+import { AuthModal } from "./auth-modal"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cityDialogOpen, setCityDialogOpen] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
   const { selectedCity, setCity, getTotalItems } = useCartStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
   const cartItemsCount = getTotalItems()
 
   const handleCitySelect = (city: string) => {
@@ -95,15 +99,37 @@ export function Header() {
           </Badge>
 
           {/* Account Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() => alert("Авторизация будет доступна в следующем обновлении")}
-          >
-            <User className="h-4 w-4" />
-            <span>Войти</span>
-          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+                onClick={() => setAuthModalOpen(true)}
+              >
+                <User className="h-4 w-4" />
+                <span>{user?.name || "Аккаунт"}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                title="Выйти"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => setAuthModalOpen(true)}
+            >
+              <User className="h-4 w-4" />
+              <span>Войти</span>
+            </Button>
+          )}
 
           {/* Cart */}
           <Sheet>
@@ -204,19 +230,41 @@ export function Header() {
                   Бесплатная доставка
                 </Badge>
 
-                <Button
-                  variant="outline"
-                  className="justify-start gap-2"
-                  onClick={() => alert("Авторизация будет доступна в следующем обновлении")}
-                >
-                  <User className="h-4 w-4" />
-                  Войти
-                </Button>
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-2 flex-1"
+                      onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}
+                    >
+                      <User className="h-4 w-4" />
+                      {user?.name || "Аккаунт"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => { logout(); setMobileMenuOpen(false); }}
+                      title="Выйти"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2"
+                    onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}
+                  >
+                    <User className="h-4 w-4" />
+                    Войти
+                  </Button>
+                )}
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </header>
   )
 }

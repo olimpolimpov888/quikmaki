@@ -1,23 +1,38 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/lib/cart-store"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { CheckoutForm } from "./checkout-form"
+import { OrderSuccess } from "./order-success"
+
+type CartView = "cart" | "checkout" | "success"
 
 export function CartDrawer() {
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore()
   const total = getTotalPrice()
+  const [view, setView] = useState<CartView>("cart")
+  const [orderNumber, setOrderNumber] = useState("")
 
-  const handleCheckout = () => {
-    // TODO: Implement checkout logic (order form, API call, etc.)
-    alert(`Заказ оформлен на сумму ${total.toLocaleString("ru-RU")} ₽! В реальном приложении здесь будет форма оплаты.`)
-    clearCart()
+  const handleCheckoutClick = () => {
+    setView("checkout")
   }
 
-  if (items.length === 0) {
+  const handleOrderSuccess = () => {
+    const num = Math.floor(10000 + Math.random() * 90000).toString()
+    setOrderNumber(num)
+    setView("success")
+  }
+
+  const handleBackToCart = () => {
+    setView("cart")
+  }
+
+  if (items.length === 0 && view !== "success") {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -28,6 +43,20 @@ export function CartDrawer() {
           Добавьте что-нибудь вкусное из меню
         </p>
       </div>
+    )
+  }
+
+  if (view === "success") {
+    return <OrderSuccess orderNumber={orderNumber} onClose={handleBackToCart} />
+  }
+
+  if (view === "checkout") {
+    return (
+      <ScrollArea className="h-[70vh]">
+        <div className="px-0">
+          <CheckoutForm onSuccess={handleOrderSuccess} onCancel={handleBackToCart} />
+        </div>
+      </ScrollArea>
     )
   }
 
@@ -91,6 +120,8 @@ export function CartDrawer() {
         </div>
       </ScrollArea>
 
+      <Separator />
+
       <div className="border-t pt-4 mt-auto">
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground">Итого:</span>
@@ -98,7 +129,7 @@ export function CartDrawer() {
             {total.toLocaleString("ru-RU")} ₽
           </span>
         </div>
-        <Button className="w-full" size="lg" onClick={handleCheckout}>
+        <Button className="w-full" size="lg" onClick={handleCheckoutClick}>
           Оформить заказ
         </Button>
         <Button
