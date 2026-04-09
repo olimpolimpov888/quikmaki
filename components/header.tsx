@@ -95,7 +95,12 @@ export function Header() {
           </Badge>
 
           {/* Account Button */}
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => alert("Авторизация будет доступна в следующем обновлении")}
+          >
             <User className="h-4 w-4" />
             <span>Войти</span>
           </Button>
@@ -199,7 +204,11 @@ export function Header() {
                   Бесплатная доставка
                 </Badge>
 
-                <Button variant="outline" className="justify-start gap-2">
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={() => alert("Авторизация будет доступна в следующем обновлении")}
+                >
                   <User className="h-4 w-4" />
                   Войти
                 </Button>

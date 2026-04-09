@@ -1,9 +1,15 @@
 "use client"
 
 import { Phone, Mail } from "lucide-react"
-import Link from "next/link"
 
 export function Footer() {
+  const scrollToSection = (id: string) => {
+    const section = document.getElementById(id)
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" })
+    }
+  }
+
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12">
@@ -52,28 +58,20 @@ export function Footer() {
             <h4 className="font-semibold text-foreground mb-4">Информация</h4>
             <ul className="space-y-3">
               <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
-                >
-                  Политика конфиденциальности
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
-                >
-                  Условия доставки
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                <button
+                  onClick={() => scrollToSection("about")}
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
                 >
                   О компании
-                </Link>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => scrollToSection("delivery")}
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
+                >
+                  Условия доставки
+                </button>
               </li>
             </ul>
 

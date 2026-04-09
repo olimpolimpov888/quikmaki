@@ -11,6 +11,12 @@ export function CartDrawer() {
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore()
   const total = getTotalPrice()
 
+  const handleCheckout = () => {
+    // TODO: Implement checkout logic (order form, API call, etc.)
+    alert(`Заказ оформлен на сумму ${total.toLocaleString("ru-RU")} ₽! В реальном приложении здесь будет форма оплаты.`)
+    clearCart()
+  }
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -92,7 +98,7 @@ export function CartDrawer() {
             {total.toLocaleString("ru-RU")} ₽
           </span>
         </div>
-        <Button className="w-full" size="lg">
+        <Button className="w-full" size="lg" onClick={handleCheckout}>
           Оформить заказ
         </Button>
         <Button

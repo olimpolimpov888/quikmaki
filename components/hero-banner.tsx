@@ -22,6 +22,13 @@ export function HeroBanner() {
     return () => clearInterval(timer)
   }, [nextSlide])
 
+  const scrollToMenu = () => {
+    const menuSection = document.getElementById("menu")
+    if (menuSection) {
+      menuSection.scrollIntoView({ behavior: "smooth" })
+    }
+  }
+
   return (
     <section className="relative w-full h-[300px] sm:h-[400px] lg:h-[500px] overflow-hidden">
       {bannerSlides.map((slide, index) => (
@@ -37,19 +44,19 @@ export function HeroBanner() {
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${slide.image})` }}
           />
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/70 to-background/40" />
-          
+          {/* Dark Overlay — reduced opacity for better photo visibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/40 to-background/20" />
+
           {/* Content */}
-          <div className="relative h-full container mx-auto px-4 flex flex-col justify-center">
-            <div className="max-w-xl">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
+          <div className="relative z-10 h-full container mx-auto px-4 flex flex-col justify-center">
+            <div className="max-w-2xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground mb-4 text-balance drop-shadow-lg">
                 {slide.title}
               </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground mb-6">
+              <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground mb-6 text-balance">
                 {slide.subtitle}
               </p>
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6" onClick={scrollToMenu}>
                 {slide.cta}
               </Button>
             </div>
