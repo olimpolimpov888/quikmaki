@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck, LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -26,12 +27,21 @@ import { CartDrawer } from "./cart-drawer"
 import { AuthModal } from "./auth-modal"
 
 export function Header() {
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cityDialogOpen, setCityDialogOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const { selectedCity, setCity, getTotalItems } = useCartStore()
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
   const cartItemsCount = getTotalItems()
+
+  const navigateToProfile = () => {
+    if (isAuthenticated) {
+      router.push("/profile")
+    } else {
+      setAuthModalOpen(true)
+    }
+  }
 
   const handleCitySelect = (city: string) => {
     setCity(city)
@@ -100,25 +110,15 @@ export function Header() {
 
           {/* Account Button */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-                onClick={() => setAuthModalOpen(true)}
-              >
-                <User className="h-4 w-4" />
-                <span>{user?.name || "Аккаунт"}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={logout}
-                title="Выйти"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={navigateToProfile}
+            >
+              <User className="h-4 w-4" />
+              <span>{user?.name || "Профиль"}</span>
+            </Button>
           ) : (
             <Button
               variant="ghost"
@@ -231,28 +231,18 @@ export function Header() {
                 </Badge>
 
                 {isAuthenticated ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="justify-start gap-2 flex-1"
-                      onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}
-                    >
-                      <User className="h-4 w-4" />
-                      {user?.name || "Аккаунт"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => { logout(); setMobileMenuOpen(false); }}
-                      title="Выйти"
-                    >
-                      <LogOut className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2 w-full"
+                    onClick={() => { router.push("/profile"); setMobileMenuOpen(false); }}
+                  >
+                    <User className="h-4 w-4" />
+                    {user?.name || "Профиль"}
+                  </Button>
                 ) : (
                   <Button
                     variant="outline"
-                    className="justify-start gap-2"
+                    className="justify-start gap-2 w-full"
                     onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}
                   >
                     <User className="h-4 w-4" />
