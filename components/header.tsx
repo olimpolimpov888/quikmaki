@@ -48,18 +48,22 @@ export function Header() {
     setCityDialogOpen(false)
   }
 
+  const goHome = () => {
+    router.push("/")
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <div className="flex items-center gap-2">
+        <button onClick={goHome} className="flex items-center gap-2 cursor-pointer group">
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-foreground">QuikMaki</span>
+            <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">QuikMaki</span>
             <span className="text-xs text-muted-foreground hidden sm:block">
               Доставка роллов и пиццы
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
