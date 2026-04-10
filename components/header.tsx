@@ -131,10 +131,10 @@ export function Header() {
             </DialogContent>
           </Dialog>
 
-          {/* Phone */}
+          {/* Phone — hidden on smaller screens to save space */}
           <a
             href="tel:+79923458944"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden xl:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
           >
             <Phone className="h-4 w-4" />
             <span>+7 (992) 345-8944</span>
