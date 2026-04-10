@@ -90,14 +90,24 @@ export function LoyaltyProgram() {
   const [orderCount, setOrderCount] = useState(0)
 
   useEffect(() => {
-    // Load from localStorage or use demo values
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]")
-    const spent = orders.reduce((sum: number, o: Record<string, unknown>) => sum + (o.total as number || 0), 0)
-    const demoSpent = 5090 // Demo value
-    const total = spent || demoSpent
-    setTotalSpent(total)
-    setPoints(Math.floor(total * 0.05)) // 5% of spent as points
-    setOrderCount(orders.length || 3)
+    // Load from localStorage or fetch from API
+    const loadLoyaltyData = async () => {
+      const orders = JSON.parse(localStorage.getItem("orders") || "[]")
+      const spent = orders.reduce((sum: number, o: Record<string, unknown>) => sum + ((o.total as number) || 0), 0)
+
+      if (spent > 0) {
+        setTotalSpent(spent)
+        setPoints(Math.floor(spent * 0.05)) // 5% cashback
+        setOrderCount(orders.length)
+      } else {
+        // Demo values for first visit
+        setTotalSpent(5090)
+        setPoints(Math.floor(5090 * 0.05))
+        setOrderCount(3)
+      }
+    }
+
+    loadLoyaltyData()
   }, [])
 
   // Determine current tier

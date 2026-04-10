@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /profile
+Disallow: /track-order
+
+# Sitemaps
+Sitemap: https://quikmaki.ru/sitemap.xml

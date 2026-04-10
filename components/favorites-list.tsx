@@ -1,62 +1,39 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { products } from "@/lib/data"
+import { useFavoritesStore } from "@/lib/favorites-store"
+import { useCartStore } from "@/lib/cart-store"
 import { Heart, ShoppingCart, Trash2, Plus } from "lucide-react"
 import Image from "next/image"
-import { useCartStore } from "@/lib/cart-store"
-
-interface FavoriteItem {
-  id: string
-  name: string
-  price: number
-  image: string
-  description: string
-  weight?: string
-  category: string
-  addedAt: string
-}
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export function FavoritesList() {
+  const { items, removeItem, clearFavorites } = useFavoritesStore()
   const { addItem } = useCartStore()
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([])
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const router = useRouter()
 
-  useEffect(() => {
-    const stored = localStorage.getItem("favorites")
-    if (stored) {
-      try {
-        setFavorites(JSON.parse(stored))
-      } catch {
-        // Use demo data
-        setFavorites(getDemoFavorites())
-      }
-    } else {
-      setFavorites(getDemoFavorites())
+  const addToCart = (productId: string) => {
+    const item = items.find((i) => i.id === productId)
+    if (item) {
+      addItem(item)
+      toast.success(`${item.name} добавлен в корзину`)
     }
-  }, [])
-
-  const getDemoFavorites = (): FavoriteItem[] => {
-    return products.slice(0, 6).map((p) => ({
-      ...p,
-      addedAt: new Date().toISOString(),
-    }))
   }
 
-  const removeFavorite = (id: string) => {
-    const updated = favorites.filter((f) => f.id !== id)
-    setFavorites(updated)
-    localStorage.setItem("favorites", JSON.stringify(updated))
+  const handleRemove = (productId: string, name: string) => {
+    removeItem(productId)
+    toast.success(`${name} удалён из избранного`)
   }
 
-  const addToCart = (item: FavoriteItem) => {
-    addItem(item)
+  const handleAddAllToCart = () => {
+    items.forEach((item) => addItem(item))
+    toast.success(`Все товары (${items.length}) добавлены в корзину`)
   }
 
-  if (favorites.length === 0) {
+  if (items.length === 0) {
     return (
       <Card className="bg-card border-border">
         <CardContent className="p-12 text-center">
@@ -64,9 +41,12 @@ export function FavoritesList() {
             <Heart className="h-10 w-10 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Избранное пусто</h3>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Добавляйте понравившиеся блюда, чтобы быстро найти их позже
           </p>
+          <Button onClick={() => router.push("/#menu")}>
+            Перейти в меню
+          </Button>
         </CardContent>
       </Card>
     )
@@ -76,20 +56,32 @@ export function FavoritesList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-foreground text-lg">
-          Избранное ({favorites.length})
+          Избранное ({items.length})
         </h3>
-        <Badge variant="outline" className="text-muted-foreground">
-          Нажмите «В корзину», чтобы добавить в заказ
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-muted-foreground">
+            Нажмите «В корзину», чтобы добавить в заказ
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              clearFavorites()
+              toast.success("Избранное очищено")
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Очистить
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {favorites.map((item) => (
+        {items.map((item) => (
           <Card
             key={item.id}
-            className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all"
-            onMouseEnter={() => setHoveredId(item.id)}
-            onMouseLeave={() => setHoveredId(null)}
+            className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all cursor-pointer"
+            onClick={() => router.push(`/menu/${item.category}/${item.id}`)}
           >
             <div className="relative aspect-[4/3] overflow-hidden">
               <Image
@@ -105,14 +97,13 @@ export function FavoritesList() {
                 </span>
               )}
               <button
-                onClick={() => removeFavorite(item.id)}
-                className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                  hoveredId === item.id
-                    ? "bg-destructive/90 opacity-100"
-                    : "bg-background/60 opacity-0 group-hover:opacity-100"
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleRemove(item.id, item.name)
+                }}
+                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-background/60 hover:bg-destructive/90 transition-all opacity-0 group-hover:opacity-100"
               >
-                <Trash2 className="h-4 w-4 text-destructive-foreground" />
+                <Trash2 className="h-4 w-4 text-foreground group-hover:text-destructive-foreground" />
               </button>
             </div>
             <CardContent className="p-4">
@@ -129,7 +120,10 @@ export function FavoritesList() {
                 <Button
                   size="sm"
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => addToCart(item)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    addToCart(item.id)
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   В корзину
@@ -145,12 +139,10 @@ export function FavoritesList() {
         <Button
           variant="outline"
           className="gap-2"
-          onClick={() => {
-            favorites.forEach((item) => addItem(item))
-          }}
+          onClick={handleAddAllToCart}
         >
           <ShoppingCart className="h-4 w-4" />
-          Добавить всё в корзину
+          Добавить всё в корзину ({items.length})
         </Button>
       </div>
     </div>

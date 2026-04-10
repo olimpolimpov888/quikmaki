@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { loginSchema, registerSchema, type LoginFormData, type RegisterFormData } from "@/lib/validations"
 import {
   Dialog,
   DialogContent,
@@ -21,45 +24,51 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange }: AuthModalProps) {
-  const { login, register } = useAuthStore()
+  const { login, register, loading, error, clearError } = useAuthStore()
   const [activeTab, setActiveTab] = useState<"login" | "register">("login")
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   // Login form
-  const [loginEmail, setLoginEmail] = useState("")
-  const [loginPassword, setLoginPassword] = useState("")
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  })
 
   // Register form
-  const [regName, setRegName] = useState("")
-  const [regEmail, setRegEmail] = useState("")
-  const [regPhone, setRegPhone] = useState("")
-  const [regPassword, setRegPassword] = useState("")
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+    },
+  })
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const success = await login(loginEmail, loginPassword)
-    setLoading(false)
+  const onLoginSubmit = async (data: LoginFormData) => {
+    clearError()
+    const success = await login(data.email, data.password)
     if (success) {
-      setLoginEmail("")
-      setLoginPassword("")
+      loginForm.reset()
       onOpenChange(false)
     }
   }
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const success = await register(regName, regEmail, regPhone, regPassword)
-    setLoading(false)
+  const onRegisterSubmit = async (data: RegisterFormData) => {
+    clearError()
+    const success = await register(data.name, data.email, data.phone, data.password)
     if (success) {
-      setRegName("")
-      setRegEmail("")
-      setRegPhone("")
-      setRegPassword("")
+      registerForm.reset()
       onOpenChange(false)
     }
+  }
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "login" | "register")
+    clearError()
   }
 
   return (
@@ -76,7 +85,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
+        {error && (
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive text-center">
+            {error}
+          </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Вход</TabsTrigger>
             <TabsTrigger value="register">Регистрация</TabsTrigger>
@@ -84,7 +99,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
           {/* Login Tab */}
           <TabsContent value="login" className="mt-6">
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
                 <div className="relative">
@@ -94,11 +109,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type="email"
                     placeholder="mail@example.com"
                     className="pl-10"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
+                    {...loginForm.register("email")}
+                    disabled={loading}
                   />
                 </div>
+                {loginForm.formState.errors.email && (
+                  <p className="text-sm text-destructive">{loginForm.formState.errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -110,18 +127,21 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type={showPassword ? "text" : "password"}
                     placeholder="Введите пароль"
                     className="pl-10 pr-10"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
+                    {...loginForm.register("password")}
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {loginForm.formState.errors.password && (
+                  <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
@@ -132,7 +152,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
           {/* Register Tab */}
           <TabsContent value="register" className="mt-6">
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="reg-name">Имя</Label>
                 <div className="relative">
@@ -142,11 +162,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type="text"
                     placeholder="Ваше имя"
                     className="pl-10"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    required
+                    {...registerForm.register("name")}
+                    disabled={loading}
                   />
                 </div>
+                {registerForm.formState.errors.name && (
+                  <p className="text-sm text-destructive">{registerForm.formState.errors.name.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -158,11 +180,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type="email"
                     placeholder="mail@example.com"
                     className="pl-10"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    required
+                    {...registerForm.register("email")}
+                    disabled={loading}
                   />
                 </div>
+                {registerForm.formState.errors.email && (
+                  <p className="text-sm text-destructive">{registerForm.formState.errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -174,11 +198,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type="tel"
                     placeholder="+7 (999) 123-45-67"
                     className="pl-10"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    required
+                    {...registerForm.register("phone")}
+                    disabled={loading}
                   />
                 </div>
+                {registerForm.formState.errors.phone && (
+                  <p className="text-sm text-destructive">{registerForm.formState.errors.phone.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -190,19 +216,21 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     type={showPassword ? "text" : "password"}
                     placeholder="Минимум 6 символов"
                     className="pl-10 pr-10"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    minLength={6}
-                    required
+                    {...registerForm.register("password")}
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {registerForm.formState.errors.password && (
+                  <p className="text-sm text-destructive">{registerForm.formState.errors.password.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

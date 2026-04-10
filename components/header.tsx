@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck } from "lucide-react"
+import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -25,6 +25,11 @@ import { useAuthStore } from "@/lib/auth-store"
 import { cities } from "@/lib/data"
 import { CartDrawer } from "./cart-drawer"
 import { AuthModal } from "./auth-modal"
+import { ThemeToggle } from "./theme-provider"
+import { GlobalSearch } from "./global-search"
+import { useI18n } from "@/lib/i18n-store"
+import type { Locale } from "@/lib/i18n"
+import Link from "next/link"
 
 export function Header() {
   const router = useRouter()
@@ -33,7 +38,12 @@ export function Header() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const { selectedCity, setCity, getTotalItems } = useCartStore()
   const { user, isAuthenticated } = useAuthStore()
+  const { locale, setLocale, t } = useI18n()
   const cartItemsCount = getTotalItems()
+
+  const toggleLocale = () => {
+    setLocale(locale === "ru" ? "en" : "ru")
+  }
 
   const navigateToProfile = () => {
     if (isAuthenticated) {
@@ -66,7 +76,31 @@ export function Header() {
         </button>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-4">
+          {/* Global Search */}
+          <GlobalSearch />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Language Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLocale}
+            className="text-muted-foreground hover:text-foreground font-mono text-xs w-10"
+          >
+            {locale === "ru" ? "EN" : "RU"}
+          </Button>
+
+          {/* Favorites */}
+          <Link href="/favorites">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+              <Heart className="h-4 w-4" />
+              <span>Избранное</span>
+            </Button>
+          </Link>
+
           {/* City Selector */}
           <Dialog open={cityDialogOpen} onOpenChange={setCityDialogOpen}>
             <DialogTrigger asChild>

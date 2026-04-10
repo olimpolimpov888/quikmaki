@@ -1,6 +1,7 @@
 "use client"
 
 import { Phone, Mail } from "lucide-react"
+import Link from "next/link"
 
 export function Footer() {
   const scrollToSection = (id: string) => {
@@ -58,20 +59,36 @@ export function Footer() {
             <h4 className="font-semibold text-foreground mb-4">Информация</h4>
             <ul className="space-y-3">
               <li>
-                <button
-                  onClick={() => scrollToSection("about")}
+                <Link
+                  href="/about"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
                 >
                   О компании
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => scrollToSection("delivery")}
+                <Link
+                  href="/faq"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
                 >
-                  Условия доставки
-                </button>
+                  Частые вопросы
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/promotions"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
+                >
+                  Акции
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
+                >
+                  Конфиденциальность
+                </Link>
               </li>
             </ul>
 

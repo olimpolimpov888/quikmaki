@@ -1,7 +1,8 @@
 "use client"
 
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 interface OrderSuccessProps {
   orderNumber: string
@@ -9,6 +10,12 @@ interface OrderSuccessProps {
 }
 
 export function OrderSuccess({ orderNumber, onClose }: OrderSuccessProps) {
+  const router = useRouter()
+
+  const handleTrackOrder = () => {
+    router.push(`/track-order?id=${orderNumber}`)
+  }
+
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
@@ -19,9 +26,15 @@ export function OrderSuccess({ orderNumber, onClose }: OrderSuccessProps) {
       <p className="text-muted-foreground text-sm mb-6">
         Мы свяжемся с вами для подтверждения. Ожидайте доставку в течение 30 минут.
       </p>
-      <Button onClick={onClose} size="lg">
-        Вернуться в меню
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+        <Button onClick={handleTrackOrder} className="flex-1 gap-2">
+          <Package className="h-4 w-4" />
+          Отслеживать
+        </Button>
+        <Button onClick={onClose} variant="outline" className="flex-1">
+          Вернуться в меню
+        </Button>
+      </div>
     </div>
   )
 }

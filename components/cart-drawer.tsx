@@ -22,8 +22,8 @@ export function CartDrawer() {
     setView("checkout")
   }
 
-  const handleOrderSuccess = () => {
-    const num = Math.floor(10000 + Math.random() * 90000).toString()
+  const handleOrderSuccess = (orderNumber?: string) => {
+    const num = orderNumber || Math.floor(10000 + Math.random() * 90000).toString()
     setOrderNumber(num)
     setView("success")
   }
@@ -54,7 +54,10 @@ export function CartDrawer() {
     return (
       <ScrollArea className="h-[70vh]">
         <div className="px-0">
-          <CheckoutForm onSuccess={handleOrderSuccess} onCancel={handleBackToCart} />
+          <CheckoutForm
+            onSuccess={(orderNumber?: string) => handleOrderSuccess(orderNumber)}
+            onCancel={handleBackToCart}
+          />
         </div>
       </ScrollArea>
     )

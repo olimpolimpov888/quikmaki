@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +15,8 @@ import {
   RotateCcw,
 } from "lucide-react"
 import Image from "next/image"
+import { useCartStore } from "@/lib/cart-store"
+import { toast } from "sonner"
 
 interface OrderItem {
   id: string
@@ -122,8 +125,19 @@ export function OrderHistory() {
   }
 
   const handleRepeatOrder = (order: Order) => {
-    // TODO: Add items to cart
-    alert(`Повторный заказ: ${order.items.map((i) => i.name).join(", ")}`)
+    const { addItem } = useCartStore.getState()
+    order.items.forEach((item) => {
+      addItem({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image || "",
+        category: "",
+        description: "",
+      })
+    })
+    toast.success(`Товары из заказа ${order.id} добавлены в корзину`)
+    router.push("/#menu")
   }
 
   const formatDate = (dateStr: string) => {
