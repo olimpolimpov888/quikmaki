@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getReferralInfo } from "@/lib/db"
 import type { ReferralInfo, ApiResponse } from "@/lib/types"
 
 export async function GET(request: NextRequest) {
