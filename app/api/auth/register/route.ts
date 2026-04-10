@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { findUserByEmail, createUser, UserRecord } from "@/lib/db"
+import { createUser, findUserByEmail } from "@/lib/db"
 import { hashPassword } from "@/lib/auth-utils"
 import type { RegisterRequest, AuthResponse } from "@/lib/types"
 
