@@ -6,13 +6,28 @@ import { ProductCard } from "./product-card"
 import { products, categories } from "@/lib/data"
 import { PromotionsSection } from "./promotions-section"
 import { FilterBar } from "./filter-bar"
+import type { SortBy } from "./filter-bar"
+
+interface FilterState {
+  categorySlugs: string[]
+  priceRange: [number, number]
+  sortBy: SortBy
+}
+
+const allPrices = products.map((p) => p.price)
+const maxPrice = Math.max(...allPrices)
 
 export function MenuSection() {
   const [activeCategory, setActiveCategory] = useState("premium-rolls")
   const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<FilterState>({
+    categorySlugs: [],
+    priceRange: [0, maxPrice],
+    sortBy: "default",
+  })
 
   const filteredProducts = useMemo(() => {
-    let result = products
+    let result = [...products]
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -24,14 +39,52 @@ export function MenuSection() {
       )
     }
 
-    // Filter by category
-    if (activeCategory === "promotions") {
+    // Filter by category (from filter-bar pills)
+    if (filters.categorySlugs.length > 0) {
+      result = result.filter((p) => filters.categorySlugs.includes(p.category))
+    } else if (activeCategory !== "promotions") {
+      // If no pills selected, use the active category from CategoryNav
+      result = result.filter((p) => p.category === activeCategory)
+    }
+
+    // Filter by price range
+    result = result.filter(
+      (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
+    )
+
+    // Sort
+    switch (filters.sortBy) {
+      case "price-asc":
+        result.sort((a, b) => a.price - b.price)
+        break
+      case "price-desc":
+        result.sort((a, b) => b.price - a.price)
+        break
+      case "name-asc":
+        result.sort((a, b) => a.name.localeCompare(b.name, "ru"))
+        break
+      case "name-desc":
+        result.sort((a, b) => b.name.localeCompare(a.name, "ru"))
+        break
+    }
+
+    // Promotions special case
+    if (activeCategory === "promotions" && !searchQuery) {
       return result.slice(0, 4)
     }
-    return result.filter((product) => product.category === activeCategory)
-  }, [activeCategory, searchQuery])
+
+    return result
+  }, [activeCategory, searchQuery, filters])
 
   const categoryName = categories.find((c) => c.slug === activeCategory)?.name || ""
+
+  const resetFilters = () => {
+    setFilters({
+      categorySlugs: [],
+      priceRange: [0, maxPrice],
+      sortBy: "default",
+    })
+  }
 
   return (
     <section id="menu">
@@ -47,8 +100,22 @@ export function MenuSection() {
         {activeCategory !== "promotions" && (
           <FilterBar
             activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
             searchQuery={searchQuery}
+            categories={filters.categorySlugs}
+            onCategoriesChange={(cats) =>
+              setFilters((prev) => ({ ...prev, categorySlugs: cats }))
+            }
+            priceRange={filters.priceRange}
+            onPriceRangeChange={(range) =>
+              setFilters((prev) => ({ ...prev, priceRange: range }))
+            }
+            maxPrice={maxPrice}
+            sortBy={filters.sortBy}
+            onSortByChange={(sort) =>
+              setFilters((prev) => ({ ...prev, sortBy: sort }))
+            }
+            filteredCount={filteredProducts.length}
+            onReset={resetFilters}
           />
         )}
 

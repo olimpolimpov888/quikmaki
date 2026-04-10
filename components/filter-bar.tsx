@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { products, categories } from "@/lib/data"
+import { categories } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
@@ -13,82 +13,53 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Filter, X, ArrowUpDown, ChevronDown } from "lucide-react"
+import { Filter, X, ArrowUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface FilterState {
-  categories: string[]
-  priceRange: [number, number]
-  sortBy: "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc" | "rating"
-}
+export type SortBy = "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
 
 interface FilterBarProps {
   activeCategory: string
-  onCategoryChange: (cat: string) => void
   searchQuery?: string
+  categories: string[]
+  onCategoriesChange: (cats: string[]) => void
+  priceRange: [number, number]
+  onPriceRangeChange: (range: [number, number]) => void
+  maxPrice: number
+  sortBy: SortBy
+  onSortByChange: (sort: SortBy) => void
+  filteredCount: number
+  onReset: () => void
 }
 
-export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: FilterBarProps) {
-  const [filters, setFilters] = useState<FilterState>({
-    categories: activeCategory !== "promotions" ? [activeCategory] : [],
-    priceRange: [0, 3000],
-    sortBy: "default",
-  })
+export function FilterBar({
+  activeCategory,
+  searchQuery,
+  categories: selectedCategories,
+  onCategoriesChange,
+  priceRange,
+  onPriceRangeChange,
+  maxPrice,
+  sortBy,
+  onSortByChange,
+  filteredCount,
+  onReset,
+}: FilterBarProps) {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
 
-  const allPrices = products.map((p) => p.price)
-  const maxPrice = Math.max(...allPrices)
-
-  // Apply filters
-  const filteredProducts = products.filter((p) => {
-    if (filters.categories.length > 0 && !filters.categories.includes(p.category)) {
-      return false
-    }
-    if (p.price < filters.priceRange[0] || p.price > filters.priceRange[1]) {
-      return false
-    }
-    return true
-  })
-
-  // Sort
-  const sorted = [...filteredProducts].sort((a, b) => {
-    switch (filters.sortBy) {
-      case "price-asc":
-        return a.price - b.price
-      case "price-desc":
-        return b.price - a.price
-      case "name-asc":
-        return a.name.localeCompare(b.name, "ru")
-      case "name-desc":
-        return b.name.localeCompare(a.name, "ru")
-      default:
-        return 0
-    }
-  })
-
   const toggleCategory = (slug: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(slug)
-        ? prev.categories.filter((c) => c !== slug)
-        : [...prev.categories, slug],
-    }))
-  }
-
-  const resetFilters = () => {
-    setFilters({
-      categories: [],
-      priceRange: [0, maxPrice],
-      sortBy: "default",
-    })
-    onCategoryChange(activeCategory)
+    onCategoriesChange(
+      selectedCategories.includes(slug)
+        ? selectedCategories.filter((c) => c !== slug)
+        : [...selectedCategories, slug]
+    )
   }
 
   const hasActiveFilters =
-    filters.categories.length > 0 ||
-    filters.priceRange[0] > 0 ||
-    filters.priceRange[1] < maxPrice ||
-    filters.sortBy !== "default"
+    selectedCategories.length > 0 ||
+    priceRange[0] > 0 ||
+    priceRange[1] < maxPrice ||
+    sortBy !== "default"
 
   return (
     <div className="space-y-4">
@@ -100,7 +71,7 @@ export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: Fil
             .filter((c) => c.slug !== "promotions")
             .map((cat) => {
               const isActive =
-                filters.categories.length === 0 || filters.categories.includes(cat.slug)
+                selectedCategories.length === 0 || selectedCategories.includes(cat.slug)
               return (
                 <button
                   key={cat.id}
@@ -121,13 +92,8 @@ export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: Fil
         {/* Sort Dropdown */}
         <div className="relative ml-auto">
           <select
-            value={filters.sortBy}
-            onChange={(e) =>
-              setFilters((prev) => ({
-                ...prev,
-                sortBy: e.target.value as FilterState["sortBy"],
-              }))
-            }
+            value={sortBy}
+            onChange={(e) => onSortByChange(e.target.value as SortBy)}
             className="appearance-none bg-card border border-border rounded-lg px-3 py-2 pr-8 text-sm text-foreground cursor-pointer hover:border-primary/50 transition-colors"
           >
             <option value="default">По умолчанию</option>
@@ -164,13 +130,11 @@ export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: Fil
               {/* Price Range */}
               <div className="space-y-3">
                 <label className="text-sm font-medium text-foreground">
-                  Цена: {filters.priceRange[0].toLocaleString("ru-RU")} ₽ — {filters.priceRange[1].toLocaleString("ru-RU")} ₽
+                  Цена: {priceRange[0].toLocaleString("ru-RU")} ₽ — {priceRange[1].toLocaleString("ru-RU")} ₽
                 </label>
                 <Slider
-                  value={[filters.priceRange[0], filters.priceRange[1]]}
-                  onValueChange={(v) =>
-                    setFilters((prev) => ({ ...prev, priceRange: [v[0], v[1]] as [number, number] }))
-                  }
+                  value={[priceRange[0], priceRange[1]]}
+                  onValueChange={(v) => onPriceRangeChange([v[0], v[1]] as [number, number])}
                   max={maxPrice}
                   step={50}
                   className="mt-2"
@@ -178,7 +142,7 @@ export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: Fil
               </div>
 
               {/* Reset */}
-              <Button variant="outline" className="w-full" onClick={resetFilters}>
+              <Button variant="outline" className="w-full" onClick={onReset}>
                 <X className="h-4 w-4 mr-2" />
                 Сбросить фильтры
               </Button>
@@ -192,12 +156,9 @@ export function FilterBar({ activeCategory, onCategoryChange, searchQuery }: Fil
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="secondary" className="gap-1">
             <Filter className="h-3 w-3" />
-            {filteredProducts.length} товаров
+            {filteredCount} товаров
           </Badge>
-          <button
-            onClick={resetFilters}
-            className="text-primary hover:underline"
-          >
+          <button onClick={onReset} className="text-primary hover:underline">
             Сбросить
           </button>
         </div>
