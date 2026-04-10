@@ -21,13 +21,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = subscribeToNewsletter(body)
+    const result = await subscribeToNewsletter(body.email, body.name)
 
     return NextResponse.json<ApiResponse>(
       { success: result.success, message: result.message },
       { status: result.success ? 201 : 409 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("Newsletter subscription error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },

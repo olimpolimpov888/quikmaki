@@ -14,20 +14,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const referralInfo = getReferralInfo(userId)
-
-    if (!referralInfo) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, message: "Пользователь не найден" },
-        { status: 404 }
-      )
-    }
-
+    // TODO: Реализовать getReferralInfo для Supabase
+    // Пока заглушка
     return NextResponse.json<ApiResponse<ReferralInfo>>({
       success: true,
-      data: referralInfo,
+      data: {
+        code: "QUICKMAKI",
+        totalReferrals: 0,
+        successfulReferrals: 0,
+        bonusPoints: 0,
+      },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get referral info error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },

@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const orderId = url.searchParams.get("orderId")
 
     if (orderId) {
-      const order = getOrderById(orderId)
+      const order = await getOrderById(orderId)
       if (!order) {
         return NextResponse.json<ApiResponse>(
           { success: false, message: "Заказ не найден" },
@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json<ApiResponse<Order>>({ success: true, data: order })
     }
 
-    const orders = getOrders(userId || undefined)
+    const orders = await getOrders(userId || undefined)
     return NextResponse.json<ApiResponse<Order[]>>({ success: true, data: orders })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get orders error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },
@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const order = updateOrderStatus(orderId, status)
+    const order = await updateOrderStatus(orderId, status)
     if (!order) {
       return NextResponse.json<ApiResponse>(
         { success: false, message: "Заказ не найден" },
@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json<ApiResponse<Order>>({ success: true, data: order })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update order status error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },

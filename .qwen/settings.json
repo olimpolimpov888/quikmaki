@@ -19,7 +19,8 @@
       "Bash(dir *)",
       "Bash(move *)",
       "Bash(findstr *)",
-      "Bash(vercel *)"
+      "Bash(vercel *)",
+      "Bash(rmdir *)"
     ]
   },
   "$version": 3

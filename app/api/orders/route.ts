@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createOrder, validatePromoCode, incrementPromoCodeUsage } from "@/lib/db"
-import type { CreateOrderRequest, CreateOrderResponse, Order } from "@/lib/types"
+import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
 
 export async function POST(request: NextRequest) {
   try {
     const body: CreateOrderRequest = await request.json()
 
-    // Validate input
     if (!body.items || body.items.length === 0) {
       return NextResponse.json<CreateOrderResponse>(
         { success: false, message: "Корзина пуста" },
@@ -28,22 +27,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate promo code if provided
+    // Проверка промокода
     let discount = 0
     let finalTotal = body.total
     if (body.promoCode) {
-      const promoResult = validatePromoCode(body.promoCode, body.total)
+      const promoResult = await validatePromoCode(body.promoCode, body.total)
       if (promoResult.valid && promoResult.discount) {
         discount = promoResult.discount
         finalTotal = body.total - discount
       }
     }
 
-    // Create order
-    const order = createOrder({
+    // Создание заказа
+    const order = await createOrder({
       items: body.items,
       total: finalTotal,
-      userId: body.customer.email, // Will be linked if user is authenticated
+      userId: null, // Будет заполнено при авторизации
       customer: {
         name: body.customer.name,
         phone: body.customer.phone,
@@ -56,19 +55,19 @@ export async function POST(request: NextRequest) {
       discount: discount > 0 ? discount : undefined,
     })
 
-    // Increment promo code usage
+    // Увеличение использования промокода
     if (body.promoCode && discount > 0) {
-      incrementPromoCodeUsage(body.promoCode)
+      await incrementPromoCodeUsage(body.promoCode)
     }
 
     return NextResponse.json<CreateOrderResponse>(
       { success: true, order },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("Order creation error:", error)
     return NextResponse.json<CreateOrderResponse>(
-      { success: false, message: "Ошибка сервера при создании заказа" },
+      { success: false, message: error.message || "Ошибка сервера при создании заказа" },
       { status: 500 }
     )
   }

@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
   try {
     const body: LoginRequest = await request.json()
 
-    // Validate input
     if (!body.email || !body.password) {
       return NextResponse.json<AuthResponse>(
         { success: false, message: "Email и пароль обязательны" },
@@ -15,8 +14,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find user
-    const user = findUserByEmail(body.email)
+    const user = await findUserByEmail(body.email)
     if (!user) {
       return NextResponse.json<AuthResponse>(
         { success: false, message: "Неверный email или пароль" },
@@ -24,28 +22,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check password
     const hashedPassword = await hashPassword(body.password)
-    if (hashedPassword !== user.hashedPassword) {
+    if (hashedPassword !== user.hashed_password) {
       return NextResponse.json<AuthResponse>(
         { success: false, message: "Неверный email или пароль" },
         { status: 401 }
       )
     }
 
-    const responseUser = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      createdAt: user.createdAt,
-    }
-
     return NextResponse.json<AuthResponse>(
-      { success: true, user: responseUser },
+      { 
+        success: true, 
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          createdAt: user.created_at,
+        }
+      },
       { status: 200 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error)
     return NextResponse.json<AuthResponse>(
       { success: false, message: "Ошибка сервера при входе" },

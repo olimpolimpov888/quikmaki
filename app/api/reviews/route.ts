@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const reviews = getReviewsByProductId(productId)
-    const rating = getProductAverageRating(productId)
+    const reviews = await getReviewsByProductId(productId)
+    const rating = await getProductAverageRating(productId)
 
     return NextResponse.json<ApiResponse<{ reviews: Review[]; rating: { average: number; count: number } }>>({
       success: true,
       data: { reviews, rating },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get reviews error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const review = createReview({
-      userId: "anonymous", // Will be replaced with auth
+    const review = await createReview({
+      userId: "anonymous",
       userName: "Анонимный пользователь",
       productId: body.productId,
       rating: body.rating,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       { success: true, data: review },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("Create review error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },

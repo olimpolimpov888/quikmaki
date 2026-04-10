@@ -4,12 +4,12 @@ import type { PromoCode, ApplyPromoCodeRequest, ApplyPromoCodeResponse, ApiRespo
 
 export async function GET() {
   try {
-    const promoCodes = getAllPromoCodes()
+    const promoCodes = await getAllPromoCodes()
     return NextResponse.json<ApiResponse<PromoCode[]>>({
       success: true,
       data: promoCodes,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get promo codes error:", error)
     return NextResponse.json<ApiResponse>(
       { success: false, message: "Ошибка сервера" },
@@ -29,14 +29,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = validatePromoCode(body.code, body.orderTotal)
+    const result = await validatePromoCode(body.code, body.orderTotal)
 
     return NextResponse.json<ApplyPromoCodeResponse>({
       success: result.valid,
       discount: result.discount,
       message: result.message,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Validate promo code error:", error)
     return NextResponse.json<ApplyPromoCodeResponse>(
       { success: false, message: "Ошибка сервера" },

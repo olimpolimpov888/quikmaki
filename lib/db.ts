@@ -1,291 +1,289 @@
-// In-memory "database" using localStorage for server-side API simulation
-// This acts as a simple database layer for API routes
+import { createClient } from './supabase/server'
+import { generateReferralCode } from './auth-utils'
+import type { Order, Review, PromoCode } from './types'
 
-import type {
-  Order,
-  Review,
-  PromoCode,
-  SubscribeRequest,
-  ReferralInfo,
-} from "./types"
-import { generateId, generateOrderNumber, generateReferralCode } from "./auth-utils"
+// ========================
+// Пользователи (Users)
+// ========================
 
-// ============ Database helpers ============
-
-function getFromDB<T>(key: string): T[] {
-  if (typeof window === "undefined") {
-    // Server-side: use in-memory store
-    return (globalThis as Record<string, unknown>)[key] as T[] || []
-  }
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]")
-  } catch {
-    return []
-  }
+export async function findUserByEmail(email: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .single()
+  return data
 }
 
-function saveToDB<T>(key: string, data: T[]): void {
-  if (typeof window === "undefined") {
-    ;(globalThis as Record<string, unknown>)[key] = data
-  } else {
-    localStorage.setItem(key, JSON.stringify(data))
-  }
+export async function findUserById(id: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single()
+  return data
 }
 
-// ============ Users ============
-
-export interface UserRecord {
-  id: string
+export async function createUser(data: {
   name: string
   email: string
   phone: string
   hashedPassword: string
-  createdAt: string
-  avatar?: string
-  referralCode: string
-  referredBy?: string
-  loyaltyPoints: number
-  totalSpent: number
-  orderCount: number
+}) {
+  const supabase = await createClient()
+  const referralCode = generateReferralCode()
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .insert({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      hashed_password: data.hashedPassword,
+      referral_code: referralCode,
+      loyalty_points: 0,
+      total_spent: 0,
+      order_count: 0,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return user
 }
 
-export function findUserByEmail(email: string): UserRecord | undefined {
-  const users = getFromDB<UserRecord>("db-users")
-  return users.find((u) => u.email.toLowerCase() === email.toLowerCase())
+export async function updateUser(id: string, updates: Record<string, unknown>) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  return data
 }
 
-export function createUser(data: Omit<UserRecord, "id" | "createdAt" | "referralCode" | "loyaltyPoints" | "totalSpent" | "orderCount">): UserRecord {
-  const users = getFromDB<UserRecord>("db-users")
-  const newUser: UserRecord = {
-    ...data,
-    id: generateId(),
-    createdAt: new Date().toISOString(),
-    referralCode: generateReferralCode(),
-    loyaltyPoints: 0,
-    totalSpent: 0,
-    orderCount: 0,
+// ========================
+// Заказы (Orders)
+// ========================
+
+export async function createOrder(orderData: any) {
+  const supabase = await createClient()
+  
+  const orderNumber = `ORD-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`
+  
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      user_id: orderData.userId || null,
+      order_number: orderNumber,
+      status: 'pending',
+      customer_name: orderData.customer.name,
+      customer_phone: orderData.customer.phone,
+      customer_email: orderData.customer.email,
+      delivery_city: orderData.delivery.city,
+      delivery_address: orderData.delivery.address,
+      delivery_apartment: orderData.delivery.apartment,
+      delivery_time: orderData.delivery.time,
+      payment_method: orderData.payment,
+      total: orderData.total,
+      discount: orderData.discount || 0,
+      promo_code: orderData.promoCode,
+      comment: orderData.comment,
+    })
+    .select()
+    .single()
+
+  if (orderError) throw orderError
+
+  if (orderData.items && orderData.items.length > 0) {
+    const itemsToInsert = orderData.items.map((item: any) => ({
+      order_id: order.id,
+      product_id: item.id,
+      product_name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      image: item.image,
+    }))
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(itemsToInsert)
+    
+    if (itemsError) throw itemsError
   }
-  users.push(newUser)
-  saveToDB("db-users", users)
-  return newUser
-}
 
-export function findUserById(id: string): UserRecord | undefined {
-  const users = getFromDB<UserRecord>("db-users")
-  return users.find((u) => u.id === id)
-}
-
-export function updateUser(id: string, data: Partial<UserRecord>): UserRecord | undefined {
-  const users = getFromDB<UserRecord>("db-users")
-  const index = users.findIndex((u) => u.id === id)
-  if (index === -1) return undefined
-  users[index] = { ...users[index], ...data }
-  saveToDB("db-users", users)
-  return users[index]
-}
-
-// ============ Orders ============
-
-export function createOrder(data: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt" | "status">): Order {
-  const orders = getFromDB<Order>("db-orders")
-  const newOrder: Order = {
-    ...data,
-    id: generateId(),
-    orderNumber: generateOrderNumber(),
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-  orders.push(newOrder)
-  saveToDB("db-orders", orders)
-
-  // Update user loyalty points if userId is present
-  if (data.userId) {
-    const users = getFromDB<UserRecord>("db-users")
-    const userIndex = users.findIndex((u) => u.id === data.userId)
-    if (userIndex !== -1) {
-      users[userIndex].totalSpent += data.total
-      users[userIndex].orderCount += 1
-      users[userIndex].loyaltyPoints += Math.floor(data.total * 0.05) // 5% cashback
-      saveToDB("db-users", users)
+  if (orderData.userId) {
+    const user = await findUserById(orderData.userId)
+    if (user) {
+      await updateUser(orderData.userId, {
+        order_count: (user.order_count || 0) + 1,
+        total_spent: (user.total_spent || 0) + orderData.total,
+        loyalty_points: (user.loyalty_points || 0) + Math.floor(orderData.total * 0.05),
+      })
     }
   }
 
-  return newOrder
+  return order
 }
 
-export function getOrders(userId?: string): Order[] {
-  const orders = getFromDB<Order>("db-orders")
+export async function getOrders(userId?: string) {
+  const supabase = await createClient()
+  let query = supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .order('created_at', { ascending: false })
+  
   if (userId) {
-    return orders.filter((o) => o.userId === userId).sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    query = query.eq('user_id', userId)
   }
-  return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  
+  const { data } = await query
+  return data || []
 }
 
-export function getOrderById(id: string): Order | undefined {
-  const orders = getFromDB<Order>("db-orders")
-  return orders.find((o) => o.id === id || o.orderNumber === id)
+export async function getOrderById(id: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .or(`id.eq.${id},order_number.eq.${id}`)
+    .single()
+  return data
 }
 
-export function updateOrderStatus(id: string, status: Order["status"]): Order | undefined {
-  const orders = getFromDB<Order>("db-orders")
-  const index = orders.findIndex((o) => o.id === id || o.orderNumber === id)
-  if (index === -1) return undefined
-  orders[index].status = status
-  orders[index].updatedAt = new Date().toISOString()
-  saveToDB("db-orders", orders)
-  return orders[index]
+export async function updateOrderStatus(id: string, status: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('orders')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  return data
 }
 
-// ============ Reviews ============
+// ========================
+// Промокоды (Promo Codes)
+// ========================
 
-export function createReview(data: Omit<Review, "id" | "createdAt">): Review {
-  const reviews = getFromDB<Review>("db-reviews")
-  const newReview: Review = {
-    ...data,
-    id: generateId(),
-    createdAt: new Date().toISOString(),
-  }
-  reviews.push(newReview)
-  saveToDB("db-reviews", reviews)
-  return newReview
+export async function getAllPromoCodes() {
+  const supabase = await createClient()
+  const { data } = await supabase.from('promo_codes').select('*')
+  return data || []
 }
 
-export function getReviewsByProductId(productId: string): Review[] {
-  const reviews = getFromDB<Review>("db-reviews")
-  return reviews
-    .filter((r) => r.productId === productId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-}
+export async function validatePromoCode(code: string, orderTotal: number) {
+  const supabase = await createClient()
+  const { data: promo } = await supabase
+    .from('promo_codes')
+    .select('*')
+    .eq('code', code.toUpperCase())
+    .single()
 
-export function getProductAverageRating(productId: string): { average: number; count: number } {
-  const reviews = getReviewsByProductId(productId)
-  if (reviews.length === 0) return { average: 0, count: 0 }
-  const sum = reviews.reduce((acc, r) => acc + r.rating, 0)
-  return { average: Math.round((sum / reviews.length) * 10) / 10, count: reviews.length }
-}
-
-// ============ Promo Codes ============
-
-// Default promo codes
-const defaultPromoCodes: PromoCode[] = [
-  {
-    code: "FIRST15",
-    description: "Скидка 15% на первый заказ",
-    discountPercent: 15,
-    minOrderAmount: 500,
-    active: true,
-    validFrom: "2026-01-01T00:00:00Z",
-    validTo: "2026-12-31T23:59:59Z",
-    usedCount: 0,
-  },
-  {
-    code: "SUSHI20",
-    description: "Скидка 20% на роллы по вторникам",
-    discountPercent: 20,
-    minOrderAmount: 1000,
-    active: true,
-    validFrom: "2026-01-01T00:00:00Z",
-    validTo: "2026-12-31T23:59:59Z",
-    usedCount: 0,
-  },
-  {
-    code: "WEEKEND",
-    description: "Бесплатная доставка в выходные",
-    discountPercent: 5,
-    minOrderAmount: 800,
-    active: true,
-    validFrom: "2026-01-01T00:00:00Z",
-    validTo: "2026-12-31T23:59:59Z",
-    usedCount: 0,
-  },
-]
-
-export function getAllPromoCodes(): PromoCode[] {
-  const stored = getFromDB<PromoCode>("db-promocodes")
-  if (stored.length === 0) {
-    saveToDB("db-promocodes", defaultPromoCodes)
-    return defaultPromoCodes
-  }
-  return stored
-}
-
-export function validatePromoCode(code: string, orderTotal: number): { valid: boolean; discount?: number; message?: string } {
-  const promoCodes = getAllPromoCodes()
-  const promo = promoCodes.find((p) => p.code.toUpperCase() === code.toUpperCase())
-
-  if (!promo) {
-    return { valid: false, message: "Промокод не найден" }
-  }
-
-  if (!promo.active) {
-    return { valid: false, message: "Промокод неактивен" }
-  }
-
+  if (!promo) return { valid: false, message: 'Промокод не найден' }
+  if (!promo.active) return { valid: false, message: 'Промокод неактивен' }
+  
   const now = new Date()
-  if (now < new Date(promo.validFrom) || now > new Date(promo.validTo)) {
-    return { valid: false, message: "Промокод истёк" }
+  if (now < new Date(promo.valid_from) || (promo.valid_to && now > new Date(promo.valid_to))) {
+    return { valid: false, message: 'Промокод истёк' }
   }
 
-  if (orderTotal < promo.minOrderAmount) {
-    return { valid: false, message: `Минимальная сумма заказа: ${promo.minOrderAmount} ₽` }
+  if (orderTotal < promo.min_order_amount) {
+    return { valid: false, message: `Минимальная сумма: ${promo.min_order_amount} ₽` }
   }
 
-  const discount = Math.round(orderTotal * (promo.discountPercent / 100))
-  return { valid: true, discount }
+  return { valid: true, discount: Math.round(orderTotal * (promo.discount_percent / 100)) }
 }
 
-export function incrementPromoCodeUsage(code: string): void {
-  const promoCodes = getAllPromoCodes()
-  const index = promoCodes.findIndex((p) => p.code.toUpperCase() === code.toUpperCase())
-  if (index !== -1) {
-    promoCodes[index].usedCount += 1
-    saveToDB("db-promocodes", promoCodes)
-  }
-}
+export async function incrementPromoCodeUsage(code: string) {
+  const supabase = await createClient()
+  const { data: promo } = await supabase
+    .from('promo_codes')
+    .select('used_count')
+    .eq('code', code.toUpperCase())
+    .single()
 
-// ============ Newsletter ============
-
-export function subscribeToNewsletter(data: SubscribeRequest): { success: boolean; message: string } {
-  const subscribers = getFromDB<SubscribeRequest>("db-newsletter")
-  const exists = subscribers.find((s) => s.email.toLowerCase() === data.email.toLowerCase())
-  if (exists) {
-    return { success: false, message: "Вы уже подписаны на рассылку" }
-  }
-  subscribers.push(data)
-  saveToDB("db-newsletter", subscribers)
-  return { success: true, message: "Вы успешно подписались!" }
-}
-
-// ============ Referrals ============
-
-export function getReferralInfo(userId: string): ReferralInfo | undefined {
-  const user = findUserById(userId)
-  if (!user) return undefined
-
-  const users = getFromDB<UserRecord>("db-users")
-  const referredUsers = users.filter((u) => u.referredBy === user.referralCode)
-
-  return {
-    code: user.referralCode,
-    totalReferrals: referredUsers.length,
-    successfulReferrals: referredUsers.filter((u) => u.orderCount > 0).length,
-    bonusPoints: referredUsers.length * 100, // 100 points per referral
+  if (promo) {
+    await supabase
+      .from('promo_codes')
+      .update({ used_count: (promo.used_count || 0) + 1 })
+      .eq('code', code.toUpperCase())
   }
 }
 
-export function applyReferralCode(newUserId: string, referralCode: string): boolean {
-  const users = getFromDB<UserRecord>("db-users")
-  const referrer = users.find((u) => u.referralCode === referralCode.toUpperCase())
-  if (!referrer) return false
+// ========================
+// Отзывы (Reviews)
+// ========================
 
-  const newUserIndex = users.findIndex((u) => u.id === newUserId)
-  if (newUserIndex === -1) return false
+export async function createReview(data: {
+  userId: string
+  userName: string
+  productId: string
+  rating: number
+  comment: string
+}) {
+  const supabase = await createClient()
+  const { data: review, error } = await supabase
+    .from('reviews')
+    .insert({
+      user_id: data.userId,
+      user_name: data.userName,
+      product_id: data.productId,
+      rating: data.rating,
+      comment: data.comment,
+    })
+    .select()
+    .single()
 
-  users[newUserIndex].referredBy = referralCode.toUpperCase()
-  referrer.loyaltyPoints += 100 // Bonus for referrer
-  saveToDB("db-users", users)
-  return true
+  if (error) throw error
+  return review
+}
+
+export async function getReviewsByProductId(productId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
+export async function getProductAverageRating(productId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('reviews')
+    .select('rating')
+    .eq('product_id', productId)
+  
+  if (!data || data.length === 0) return { average: 0, count: 0 }
+  
+  const sum = data.reduce((acc: number, r: any) => acc + r.rating, 0)
+  return { average: Math.round((sum / data.length) * 10) / 10, count: data.length }
+}
+
+// ========================
+// Подписка (Newsletter)
+// ========================
+
+export async function subscribeToNewsletter(email: string, name?: string) {
+  const supabase = await createClient()
+  
+  const { data: existing } = await supabase
+    .from('newsletter_subscribers')
+    .select('id')
+    .eq('email', email)
+    .single()
+
+  if (existing) return { success: false, message: 'Вы уже подписаны' }
+
+  const { error } = await supabase
+    .from('newsletter_subscribers')
+    .insert({ email, name })
+
+  if (error) return { success: false, message: error.message }
+  return { success: true, message: 'Вы подписались!' }
 }
