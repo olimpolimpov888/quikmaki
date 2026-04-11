@@ -7,7 +7,16 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const result = await validatePromoCode(body.code, body.orderTotal)
-  return NextResponse.json(result)
+  try {
+    const body = await request.json()
+    const result = await validatePromoCode(body.code, body.orderTotal)
+    
+    return NextResponse.json({ 
+      success: result.valid, 
+      discount: result.discount,
+      message: result.message 
+    })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+  }
 }

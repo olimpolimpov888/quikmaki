@@ -46,6 +46,7 @@ export interface DeliveryInfo {
 export interface CreateOrderRequest {
   items: OrderItem[]
   total: number
+  userId?: string | null
   customer: {
     name: string
     phone: string
