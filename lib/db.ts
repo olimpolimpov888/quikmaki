@@ -291,3 +291,59 @@ export async function subscribe(email: string, name?: string) {
   if (error) return { success: false, message: error.message }
   return { success: true, message: 'Вы подписались!' }
 }
+
+// ========================
+// Статистика пользователя и Достижения
+// ========================
+
+export async function getUserProfileStats(userId: string) {
+  const supabase = await createClient()
+  
+  // 1. Базовые данные
+  const { data: user } = await supabase
+    .from('users')
+    .select('loyalty_points, total_spent, order_count')
+    .eq('id', userId)
+    .single()
+
+  if (!user) return null
+
+  // 2. Считаем товары для достижений
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('id, order_items(product_name, quantity)')
+    .eq('user_id', userId)
+
+  let rollsCount = 0
+  let dessertsCount = 0
+  let pizzasCount = 0
+
+  orders?.forEach((order: any) => {
+    order.order_items?.forEach((item: any) => {
+      const name = item.product_name.toLowerCase()
+      if (name.includes('ролл') || name.includes('суши') || name.includes('филадельфия') || name.includes('дракон')) {
+        rollsCount += item.quantity
+      }
+      if (name.includes('десерт') || name.includes('моти') || name.includes('чизкейк')) {
+        dessertsCount += item.quantity
+      }
+      if (name.includes('пицца')) {
+        pizzasCount += item.quantity
+      }
+    })
+  })
+
+  return {
+    points: user.loyalty_points || 0,
+    spent: user.total_spent || 0,
+    orderCount: user.order_count || 0,
+    achievements: {
+      firstOrder: user.order_count >= 1,
+      sweetTooth: dessertsCount >= 5,
+      pizzaMan: pizzasCount >= 10,
+      rollMaster: rollsCount >= 20,
+      nightOwl: false,
+      generous: false,
+    }
+  }
+}
