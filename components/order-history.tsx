@@ -37,7 +37,7 @@ export function OrderHistory() {
       }
 
       try {
-        const response = await fetch(`/api/orders`)
+        const response = await fetch(`/api/orders?userId=${user.id}`)
         const result = await response.json()
         
         if (result.success && result.data && result.data.length > 0) {
