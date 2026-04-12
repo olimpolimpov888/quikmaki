@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(body.password)
     const user = await createUser({ name: body.name, email: body.email, phone: body.phone, hashedPassword })
 
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Ошибка создания пользователя" }, { status: 500 })
+    }
+
     return NextResponse.json({ success: true, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, createdAt: user.createdAt } }, { status: 201 })
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message || "Ошибка сервера" }, { status: 500 })
