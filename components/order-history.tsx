@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Clock,
   Package,
@@ -48,7 +47,7 @@ export function OrderHistory() {
         return
       }
       try {
-        const response = await fetch(`/api/orders?userId=${user.id}`)
+        const response = await fetch("/api/orders?userId=" + user.id)
         const result = await response.json()
         if (result.success && result.data && result.data.length > 0) {
           setOrders(result.data)
@@ -86,7 +85,7 @@ export function OrderHistory() {
         }
       }
     })
-    toast.success(`Товары из заказа ${order.orderNumber || order.id} добавлены в корзину`)
+    toast.success("Товары из заказа " + (order.orderNumber || order.id) + " добавлены в корзину")
     router.push("/#menu")
   }
 
@@ -136,75 +135,74 @@ export function OrderHistory() {
       <h3 className="font-semibold text-foreground text-lg">История заказов ({orders.length})</h3>
       <div className="space-y-4 pb-8">
         {orders.map((order) => {
-            const status = statusConfig[order.status] || statusConfig.pending
-            return (
-              <Card key={order.id} className="bg-card border-border overflow-hidden">
-                <div className="p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm font-medium text-primary">{order.orderNumber || order.id.slice(0, 8)}</span>
-                      <Badge variant="secondary" className={cn("gap-1", status.color)}>{status.icon}{status.label}</Badge>
-                    </div>
-                    <span className="text-lg font-bold text-foreground">{order.total.toLocaleString("ru-RU")} ₽</span>
+          const status = statusConfig[order.status] || statusConfig.pending
+          return (
+            <Card key={order.id} className="bg-card border-border overflow-hidden">
+              <div className="p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-sm font-medium text-primary">{order.orderNumber || order.id.slice(0, 8)}</span>
+                    <Badge variant="secondary" className={cn("gap-1", status.color)}>{status.icon}{status.label}</Badge>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                    <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatDate(order.createdAt)}</div>
-                    <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{order.delivery?.address || "Адрес не указан"}</div>
+                  <span className="text-lg font-bold text-foreground">{order.total.toLocaleString("ru-RU")} ₽</span>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
+                  <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatDate(order.createdAt)}</div>
+                  <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{order.delivery?.address || "Адрес не указан"}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {order.items && order.items.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {order.items.slice(0, 4).map((item, idx) => (
+                          <div key={item.id + idx} className="relative w-10 h-10 rounded-full border-2 border-card overflow-hidden">
+                            {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" crossOrigin="anonymous" />}
+                          </div>
+                        ))}
+                        {order.items.length > 4 && (
+                          <div className="relative w-10 h-10 rounded-full border-2 border-card bg-muted flex items-center justify-center">
+                            <span className="text-xs font-medium">+{order.items.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <span className="text-sm text-muted-foreground">
+                      {order.items?.length || 0} поз. · {order.items?.slice(0, 2).map(i => i.name).join(", ")}
+                      {(order.items?.length || 0) > 2 ? " +" + ((order.items?.length || 0) - 2) : ""}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {order.items && order.items.length > 0 && (
-                        <div className="flex -space-x-2">
-                          {order.items.slice(0, 4).map((item, idx) => (
-                            <div key={item.id + idx} className="relative w-10 h-10 rounded-full border-2 border-card overflow-hidden">
-                              {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" crossOrigin="anonymous" />}
-                            </div>
-                          ))}
-                          {order.items.length > 4 && (
-                            <div className="relative w-10 h-10 rounded-full border-2 border-card bg-muted flex items-center justify-center">
-                              <span className="text-xs font-medium">+{order.items.length - 4}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        {order.items?.length || 0} поз. · {order.items?.slice(0, 2).map(i => i.name).join(", ")}
-                        {(order.items?.length || 0) > 2 ? ` +${(order.items?.length || 0) - 2}` : ""}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleRepeatOrder(order)}><RotateCcw className="h-3.5 w-3.5 mr-1" />Повторить</Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleExpand(order.id)}>
-                        {expandedOrder === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => handleRepeatOrder(order)}><RotateCcw className="h-3.5 w-3.5 mr-1" />Повторить</Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleExpand(order.id)}>
+                      {expandedOrder === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
-                {expandedOrder === order.id && (
-                  <div className="border-t border-border p-4 bg-background/50">
-                    <h4 className="font-medium text-sm mb-3">Состав заказа</h4>
-                    <div className="space-y-2">
-                      {(order.items || []).map((item) => (
-                        <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-card">
-                          {item.image && (
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                              <Image src={item.image} alt={item.name} fill className="object-cover" crossOrigin="anonymous" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{item.quantity} × {item.price.toLocaleString("ru-RU")} ₽</p>
+              </div>
+              {expandedOrder === order.id && (
+                <div className="border-t border-border p-4 bg-background/50">
+                  <h4 className="font-medium text-sm mb-3">Состав заказа</h4>
+                  <div className="space-y-2">
+                    {(order.items || []).map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-card">
+                        {item.image && (
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                            <Image src={item.image} alt={item.name} fill className="object-cover" crossOrigin="anonymous" />
                           </div>
-                          <span className="text-sm font-semibold">{(item.quantity * item.price).toLocaleString("ru-RU")} ₽</span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.quantity} × {item.price.toLocaleString("ru-RU")} ₽</p>
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-sm font-semibold">{(item.quantity * item.price).toLocaleString("ru-RU")} ₽</span>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </Card>
-            )
-          })}
-        </div>
+                </div>
+              )}
+            </Card>
+          )
+        })}
       </div>
     </div>
   )
