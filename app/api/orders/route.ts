@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Создание
+    console.log("[DEBUG] Creating order with userId:", userId)
     const order = await createOrder({
       items: body.items,
       total: finalTotal,
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       promoCode: body.promoCode,
       discount,
     })
+    console.log("[DEBUG] Order created:", order?.id)
 
     if (body.promoCode && discount > 0) await incrementPromoCodeUsage(body.promoCode)
 
