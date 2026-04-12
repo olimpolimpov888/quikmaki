@@ -20,6 +20,7 @@ export function CookieBanner() {
   }
 
   const handleClose = () => {
+    localStorage.setItem("cookies-accepted", "false")
     setIsVisible(false)
   }
 
