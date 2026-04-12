@@ -2,9 +2,15 @@
 
 import { useRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { categories } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  icon?: string | null
+}
 
 interface CategoryNavProps {
   activeCategory: string
@@ -15,6 +21,21 @@ export function CategoryNav({ activeCategory, onCategoryChange }: CategoryNavPro
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Загрузка категорий из БД
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setCategories(data.data)
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
   const checkScrollButtons = () => {
     if (scrollRef.current) {
@@ -35,6 +56,20 @@ export function CategoryNav({ activeCategory, onCategoryChange }: CategoryNavPro
       const scrollAmount = direction === "left" ? -200 : 200
       scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" })
     }
+  }
+
+  if (loading) {
+    return (
+      <nav className="sticky top-16 z-40 bg-background border-b border-border">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex gap-2">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="h-8 w-24 rounded-full bg-muted animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </nav>
+    )
   }
 
   return (

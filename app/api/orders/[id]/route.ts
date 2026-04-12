@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getOrders, getOrderById } from "@/lib/db"
+import { getOrders, getOrderById, updateOrderStatus } from "@/lib/db"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +17,26 @@ export async function GET(request: NextRequest) {
     // Получаем заказы текущего пользователя (userId передаётся с клиента)
     const orders = await getOrders(userId || undefined)
     return NextResponse.json({ success: true, data: orders })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const pathParts = url.pathname.split("/")
+    const orderId = pathParts[pathParts.length - 1]
+
+    const body = await request.json()
+    const { status } = body
+
+    if (!status) {
+      return NextResponse.json({ success: false, message: "Укажите статус" }, { status: 400 })
+    }
+
+    await updateOrderStatus(orderId, status)
+    return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 })
   }

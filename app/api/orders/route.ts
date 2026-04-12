@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createOrder, validatePromoCode, incrementPromoCodeUsage, getOrders } from "@/lib/db"
+import { createOrder, validatePromoCode, incrementPromoCodeUsage, getOrders, createYooKassaPayment, updateOrderStatus } from "@/lib/db"
 import { createClient } from "@/lib/supabase/server"
+import { createPayment, formatAmount } from "@/lib/yookassa"
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
 
 export async function GET(request: NextRequest) {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
     const totalDiscount = loyaltyDiscount + promoDiscount
 
-    // Создание
+    // Создание заказа
     const order = await createOrder({
       items: body.items,
       total: body.total,
@@ -54,7 +55,80 @@ export async function POST(request: NextRequest) {
 
     if (body.promoCode && promoDiscount > 0) await incrementPromoCodeUsage(body.promoCode)
 
-    return NextResponse.json({ success: true, order }, { status: 201 })
+    // Если оплата картой — создаём платёж ЮKassa
+    let paymentUrl = null
+    let paymentId = null
+
+    if (body.payment === 'card' && order) {
+      try {
+        // Базовый URL для returnUrl (берём из запроса)
+        const url = new URL(request.url)
+        const baseUrl = `${url.protocol}//${url.host}`
+        const returnUrl = `${baseUrl}/track-order?order=${order.orderNumber}`
+
+        const yookassaPayment = await createPayment({
+          amount: {
+            value: formatAmount(body.total),
+            currency: 'RUB',
+          },
+          confirmation: {
+            type: 'redirect',
+            return_url: returnUrl,
+          },
+          capture: true,
+          description: `Оплата заказа ${order.orderNumber}`,
+          metadata: {
+            order_id: order.id,
+            user_id: userId || 'anonymous',
+          },
+          receipt: {
+            customer: {
+              email: body.customer.email || undefined,
+              phone: body.customer.phone || undefined,
+            },
+            items: body.items.map((item) => ({
+              description: item.name,
+              quantity: String(item.quantity),
+              amount: {
+                value: formatAmount(item.price * item.quantity),
+                currency: 'RUB',
+              },
+              vat_code: 2,
+            })),
+          },
+        })
+
+        if (yookassaPayment?.confirmation?.confirmation_url) {
+          paymentUrl = yookassaPayment.confirmation.confirmation_url
+          paymentId = yookassaPayment.id
+
+          // Сохраняем информацию о платеже в БД
+          await createYooKassaPayment({
+            orderId: order.id,
+            yookassaPaymentId: yookassaPayment.id,
+            amount: body.total,
+            status: yookassaPayment.status,
+            paymentMethod: yookassaPayment.payment_method?.type,
+            confirmationUrl: yookassaPayment.confirmation.confirmation_url,
+            expiresAt: yookassaPayment.expires_at,
+            metadata: { order_id: order.id },
+          })
+
+          // Меняем статус заказа на "ожидает оплаты"
+          await updateOrderStatus(order.id, 'awaiting_payment')
+        }
+      } catch (paymentError: any) {
+        console.error('Ошибка создания платежа ЮKassa:', paymentError)
+        // Заказ всё равно создан, просто возвращаем без paymentUrl
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      order,
+      paymentUrl,
+      paymentId,
+    }, { status: 201 })
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message || "Ошибка" }, { status: 500 })
   }

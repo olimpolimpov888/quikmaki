@@ -1,10 +1,26 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { products, categories } from "@/lib/data"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductDetails } from "@/components/product-details"
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  image: string
+  category: string
+  category_name?: string
+  weight?: string
+  rating?: number
+  reviewsCount?: number
+  inStock?: boolean
+  isPopular?: boolean
+  isNew?: boolean
+}
 
 interface ProductPageProps {
   params: Promise<{
@@ -13,21 +29,54 @@ interface ProductPageProps {
   }>
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  const { id } = await params
+export default function ProductPage({ params }: ProductPageProps) {
+  const [product, setProduct] = useState<Product | null>(null)
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const product = products.find((p) => p.id === id)
+  useEffect(() => {
+    params.then(async ({ id }) => {
+      // Загрузка товара
+      const res = await fetch(`/api/products?id=${id}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        setProduct(data.data)
 
-  if (!product) {
-    notFound()
+        // Загрузка связанных товаров той же категории
+        const relatedRes = await fetch(`/api/products?category=${data.data.category}`)
+        const relatedData = await relatedRes.json()
+        if (relatedData.success) {
+          setRelatedProducts(
+            relatedData.data
+              .filter((p: Product) => p.id !== id)
+              .slice(0, 4)
+          )
+        }
+      } else {
+        notFound()
+        return
+      }
+      setLoading(false)
+    })
+  }, [params])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-64 bg-muted rounded-xl mb-4" />
+            <div className="h-8 bg-muted rounded w-1/2 mb-4" />
+            <div className="h-4 bg-muted rounded w-3/4" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
-  const category = categories.find((c) => c.slug === product.category)
-
-  // Get related products (same category, excluding current)
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4)
+  if (!product) return null
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,7 +84,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <main>
         <ProductDetails
           product={product}
-          category={category?.name || ""}
+          category={product.category_name || product.category}
           relatedProducts={relatedProducts}
         />
       </main>

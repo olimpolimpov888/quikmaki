@@ -14,6 +14,7 @@ import { Clock } from "lucide-react"
 
 export function ClosedModal() {
   const [isOpen, setIsOpen] = useState(false)
+  const [restaurantInfo, setRestaurantInfo] = useState<{ open: boolean; nextOpenTime?: string; nextCloseTime?: string } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -21,15 +22,26 @@ export function ClosedModal() {
     const alreadyShown = sessionStorage.getItem("closed-modal-shown")
     if (alreadyShown) return
 
-    const checkWorkingHours = () => {
-      const now = new Date()
-      const hours = now.getHours()
-      // Working hours: 10:00 - 22:00
-      const isOpenNow = hours >= 10 && hours < 22
-
-      if (!isOpenNow) {
-        setIsOpen(true)
-        sessionStorage.setItem("closed-modal-shown", "true")
+    const checkWorkingHours = async () => {
+      try {
+        const res = await fetch('/api/restaurant')
+        const data = await res.json()
+        if (data.success) {
+          setRestaurantInfo(data.data)
+          if (!data.data.open) {
+            setIsOpen(true)
+            sessionStorage.setItem("closed-modal-shown", "true")
+          }
+        }
+      } catch {
+        // Fallback — проверяем по умолчанию 10:00-22:00
+        const now = new Date()
+        const hours = now.getHours()
+        const isOpenNow = hours >= 10 && hours < 22
+        if (!isOpenNow) {
+          setIsOpen(true)
+          sessionStorage.setItem("closed-modal-shown", "true")
+        }
       }
     }
 
@@ -50,8 +62,9 @@ export function ClosedModal() {
           </div>
           <DialogTitle className="text-center">Мы сейчас закрыты</DialogTitle>
           <DialogDescription className="text-center">
-            Мы работаем ежедневно с 10:00 до 22:00.
-            Вы можете оформить предзаказ, и мы свяжемся с вами в рабочее время.
+            {restaurantInfo?.nextOpenTime
+              ? `Мы откроемся в ${restaurantInfo.nextOpenTime}. Вы можете оформить предзаказ.`
+              : "Мы временно не работаем. Вы можете оформить предзаказ, и мы свяжемся с вами в рабочее время."}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 mt-4">

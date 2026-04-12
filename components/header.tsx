@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Phone, MapPin, User, ShoppingCart, Menu, X, Truck, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,13 +22,13 @@ import {
 } from "@/components/ui/sheet"
 import { useCartStore } from "@/lib/cart-store"
 import { useAuthStore } from "@/lib/auth-store"
-import { cities } from "@/lib/data"
 import { CartDrawer } from "./cart-drawer"
 import { AuthModal } from "./auth-modal"
 import { ThemeToggle } from "./theme-provider"
 import { GlobalSearch } from "./global-search"
 import { useI18n } from "@/lib/i18n-store"
 import type { Locale } from "@/lib/i18n"
+import { useRestaurantStatus } from "./restaurant-status"
 import Link from "next/link"
 
 export function Header() {
@@ -36,10 +36,27 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cityDialogOpen, setCityDialogOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [cities, setCities] = useState<string[]>(["Екатеринбург", "Москва", "Тюмень"])
   const { selectedCity, setCity, getTotalItems } = useCartStore()
   const { user, isAuthenticated } = useAuthStore()
   const { locale, setLocale, t } = useI18n()
+  const { isOpen, loading } = useRestaurantStatus()
   const cartItemsCount = getTotalItems()
+
+  // Загружаем города из БД
+  useEffect(() => {
+    fetch('/api/cities')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data.length > 0) {
+          setCities(data.data.map((c: any) => c.name))
+        }
+      })
+      .catch(() => {
+        // Fallback на захардкоженные города
+        setCities(["Екатеринбург", "Москва", "Тюмень"])
+      })
+  }, [])
 
   const toggleLocale = () => {
     setLocale(locale === "ru" ? "en" : "ru")
@@ -73,6 +90,11 @@ export function Header() {
               Доставка роллов и пиццы
             </span>
           </div>
+          {!loading && (
+            <Badge variant={isOpen ? "default" : "destructive"} className="text-xs">
+              {isOpen ? "Открыто" : "Закрыто"}
+            </Badge>
+          )}
         </button>
 
         {/* Desktop Navigation */}

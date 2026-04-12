@@ -2,23 +2,26 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { products, categories } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, X, ArrowRight, Package, UtensilsCrossed } from "lucide-react"
+import { Search, X, ArrowRight, UtensilsCrossed } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-interface SearchResult {
+interface Product {
   id: string
   name: string
   description: string
   price: number
   image: string
   category: string
-  categoryName: string
+  category_name?: string
   weight?: string
+}
+
+interface SearchResult extends Product {
+  categoryName: string
 }
 
 export function GlobalSearch() {
@@ -28,8 +31,21 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Load products from DB
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setAllProducts(data.data)
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   // Load recent searches
   useEffect(() => {
@@ -47,7 +63,7 @@ export function GlobalSearch() {
     }
 
     const q = query.toLowerCase()
-    const filtered = products
+    const filtered = allProducts
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -55,13 +71,13 @@ export function GlobalSearch() {
       )
       .map((p) => ({
         ...p,
-        categoryName: categories.find((c) => c.slug === p.category)?.name || "",
+        categoryName: p.category_name || p.category,
       }))
       .slice(0, 8)
 
     setResults(filtered)
     setSelectedIndex(-1)
-  }, [query])
+  }, [query, allProducts])
 
   // Close on outside click
   useEffect(() => {

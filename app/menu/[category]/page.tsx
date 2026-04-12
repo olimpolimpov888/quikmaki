@@ -1,10 +1,30 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { categories, products } from "@/lib/data"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+}
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  image: string
+  category: string
+  weight?: string
+  rating?: number
+  reviewsCount?: number
+  inStock?: boolean
+}
 
 interface CategoryPageProps {
   params: Promise<{
@@ -12,16 +32,56 @@ interface CategoryPageProps {
   }>
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { category: categorySlug } = await params
+export default function CategoryPage({ params }: CategoryPageProps) {
+  const [categorySlug, setCategorySlug] = useState<string | null>(null)
+  const [category, setCategory] = useState<Category | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const category = categories.find((c) => c.slug === categorySlug)
+  useEffect(() => {
+    params.then(async ({ category }) => {
+      setCategorySlug(category)
 
-  if (!category) {
-    notFound()
+      // Загрузка категорий
+      const catRes = await fetch('/api/categories')
+      const catData = await catRes.json()
+      if (catData.success) {
+        const found = catData.data.find((c: Category) => c.slug === category)
+        if (found) {
+          setCategory(found)
+        } else {
+          notFound()
+          return
+        }
+      }
+
+      // Загрузка товаров категории
+      const prodRes = await fetch(`/api/products?category=${category}`)
+      const prodData = await prodRes.json()
+      if (prodData.success) {
+        setProducts(prodData.data)
+      }
+      setLoading(false)
+    })
+  }, [params])
+
+  if (!categorySlug || loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i} className="rounded-xl bg-muted animate-pulse aspect-square" />
+            ))}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
-  const categoryProducts = products.filter((p) => p.category === categorySlug)
+  if (!category) return null
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,9 +94,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           )}
         </div>
 
-        {categoryProducts.length > 0 ? (
+        {products.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {categoryProducts.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

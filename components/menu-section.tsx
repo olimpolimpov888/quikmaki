@@ -1,12 +1,26 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { CategoryNav } from "./category-nav"
 import { ProductCard } from "./product-card"
-import { products, categories } from "@/lib/data"
 import { PromotionsSection } from "./promotions-section"
 import { FilterBar } from "./filter-bar"
 import type { SortBy } from "./filter-bar"
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  image: string
+  category: string
+  weight?: string
+  rating?: number
+  reviewsCount?: number
+  inStock?: boolean
+  isPopular?: boolean
+  isNew?: boolean
+}
 
 interface FilterState {
   categorySlugs: string[]
@@ -14,17 +28,40 @@ interface FilterState {
   sortBy: SortBy
 }
 
-const allPrices = products.map((p) => p.price)
-const maxPrice = Math.max(...allPrices)
-
 export function MenuSection() {
   const [activeCategory, setActiveCategory] = useState("premium-rolls")
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<FilterState>({
     categorySlugs: [],
-    priceRange: [0, maxPrice],
+    priceRange: [0, 10000],
     sortBy: "default",
   })
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Загрузка товаров из БД
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setProducts(data.data)
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Обновляем maxPrice когда товары загружены
+  const maxPrice = useMemo(() => {
+    if (products.length === 0) return 10000
+    return Math.max(...products.map((p) => p.price))
+  }, [products])
+
+  // Обновляем priceRange когда maxPrice изменится
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, priceRange: [0, maxPrice] }))
+  }, [maxPrice])
 
   const filteredProducts = useMemo(() => {
     let result = [...products]
@@ -74,9 +111,7 @@ export function MenuSection() {
     }
 
     return result
-  }, [activeCategory, searchQuery, filters])
-
-  const categoryName = categories.find((c) => c.slug === activeCategory)?.name || ""
+  }, [activeCategory, searchQuery, filters, products])
 
   const resetFilters = () => {
     setFilters({
@@ -84,6 +119,20 @@ export function MenuSection() {
       priceRange: [0, maxPrice],
       sortBy: "default",
     })
+  }
+
+  if (loading) {
+    return (
+      <section id="menu">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i} className="rounded-xl bg-muted animate-pulse aspect-square" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -116,7 +165,7 @@ export function MenuSection() {
         <h2 className="text-2xl font-bold text-foreground mb-6 mt-4">
           {searchQuery
             ? `Результаты поиска (${filteredProducts.length})`
-            : categoryName}
+            : (activeCategory === "promotions" ? "Акции" : "")}
         </h2>
 
         {filteredProducts.length > 0 ? (

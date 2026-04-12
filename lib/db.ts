@@ -35,6 +35,7 @@ function mapOrder(order: any) {
     total: order.total,
     discount: order.discount || 0,
     loyaltyDiscount: order.loyalty_discount || 0,
+    deliveryFee: order.delivery_fee || 0,
     promoCode: order.promo_code,
     comment: order.comment,
     customer: {
@@ -58,6 +59,16 @@ function mapOrder(order: any) {
       category: item.category,
       description: item.description,
     })),
+  }
+}
+
+export function mapOrderWithPayment(order: any) {
+  const mapped = mapOrder(order)
+  if (!mapped) return null
+  return {
+    ...mapped,
+    paymentStatus: order.yookassa_payments?.[0]?.status || null,
+    paymentUrl: order.yookassa_payments?.[0]?.confirmation_url || null,
   }
 }
 
@@ -189,6 +200,7 @@ export async function createOrder(data: any) {
       loyalty_discount: data.loyaltyDiscount || 0,
       promo_code: data.promoCode,
       comment: data.comment,
+      delivery_fee: data.deliveryFee || 0,
     })
     .select()
     .single()
@@ -379,6 +391,242 @@ export async function getUserProfileStats(userId: string) {
       generous: false,
     }
   }
+}
+
+// ========================
+// Платежи ЮKassa (yookassa_payments)
+// ========================
+
+export async function createYooKassaPayment(data: {
+  orderId: string
+  yookassaPaymentId: string
+  amount: number
+  currency?: string
+  status?: string
+  paymentMethod?: string
+  confirmationUrl?: string
+  expiresAt?: string
+  metadata?: Record<string, string>
+}) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('yookassa_payments').insert({
+    order_id: data.orderId,
+    yookassa_payment_id: data.yookassaPaymentId,
+    amount: data.amount,
+    currency: data.currency || 'RUB',
+    status: data.status || 'pending',
+    payment_method: data.paymentMethod,
+    confirmation_url: data.confirmationUrl,
+    expires_at: data.expiresAt,
+    metadata: data.metadata || {},
+  })
+  if (error) throw error
+  return true
+}
+
+export async function updateYooKassaPaymentStatus(paymentId: string, status: string, paidAt?: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('yookassa_payments')
+    .update({
+      status,
+      paid_at: paidAt || null,
+    })
+    .eq('yookassa_payment_id', paymentId)
+  if (error) throw error
+  return true
+}
+
+export async function getOrderPayment(orderId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('yookassa_payments')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  return data
+}
+
+// ========================
+// История статусов заказов
+// ========================
+
+export async function getOrderStatusHistory(orderId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('order_status_history')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
+// ========================
+// Обновление статуса заказа
+// ========================
+
+export async function updateOrderStatus(orderId: string, status: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', orderId)
+  if (error) throw error
+  return true
+}
+
+// ========================
+// Города доставки (delivery_cities)
+// ========================
+
+export async function getAllDeliveryCities() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('delivery_cities')
+    .select('*')
+    .eq('is_active', true)
+    .order('name')
+  return data || []
+}
+
+export async function getDeliveryCity(name: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('delivery_cities')
+    .select('*')
+    .eq('name', name)
+    .single()
+  return data
+}
+
+// ========================
+// Рабочее время (working_hours)
+// ========================
+
+export async function getWorkingHours() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('working_hours')
+    .select('*')
+    .order('day_of_week')
+  return data || []
+}
+
+export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?: string; nextCloseTime?: string }> {
+  const supabase = await createClient()
+  const now = new Date()
+  // Учитываем часовой пояс — берём текущий день недели
+  const dayOfWeek = now.getDay() // 0=Вс, 1=Пн, ...
+  const currentTime = now.toTimeString().slice(0, 5) // "HH:MM"
+
+  const { data } = await supabase
+    .from('working_hours')
+    .select('*')
+    .eq('day_of_week', dayOfWeek)
+    .eq('is_active', true)
+    .single()
+
+  if (!data) {
+    // Ресторан не работает в этот день — ищем следующий открытый день
+    return { open: false }
+  }
+
+  const openTime = data.open_time
+  const closeTime = data.close_time
+  const breakStart = data.break_start
+  const breakEnd = data.break_end
+
+  // Проверяем перерыв
+  if (breakStart && breakEnd && currentTime >= breakStart && currentTime <= breakEnd) {
+    return { open: false, nextOpenTime: breakEnd }
+  }
+
+  // Проверяем рабочие часы (учитываем что close_time может быть после полуночи)
+  if (currentTime >= openTime && currentTime <= closeTime) {
+    return { open: true, nextCloseTime: closeTime }
+  }
+
+  // Ресторан закрыт
+  if (currentTime < openTime) {
+    return { open: false, nextOpenTime: openTime }
+  }
+
+  return { open: false, nextOpenTime: 'Следующий день' }
+}
+
+// ========================
+// Зоны доставки (delivery_zones)
+// ========================
+
+export async function getDeliveryZones(cityId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('delivery_zones')
+    .select('*')
+    .eq('city_id', cityId)
+    .order('radius_km')
+  return data || []
+}
+
+// ========================
+// Баннеры (promotional_banners)
+// ========================
+
+export async function getActiveBanners() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('promotional_banners')
+    .select('*')
+    .eq('is_active', true)
+    .gte('end_date', new Date().toISOString())
+    .order('sort_order')
+  return data || []
+}
+
+// ========================
+// Категории (categories)
+// ========================
+
+export async function getAllCategories() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order')
+  return data || []
+}
+
+// ========================
+// Товары (products)
+// ========================
+
+export async function getAllProducts(categoryId?: string) {
+  const supabase = await createClient()
+  let query = supabase
+    .from('products')
+    .select('*, categories(name, slug)')
+    .eq('is_available', true)
+    .order('sort_order')
+
+  if (categoryId) {
+    query = query.eq('category_id', categoryId)
+  }
+
+  const { data } = await query
+  return data || []
+}
+
+export async function getProductById(id: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('products')
+    .select('*, categories(name, slug), product_modifiers(*), product_ingredients(*, ingredients(*))')
+    .eq('id', id)
+    .single()
+  return data
 }
 
 // ========================

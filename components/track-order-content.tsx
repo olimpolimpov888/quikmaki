@@ -18,23 +18,28 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Order } from "@/lib/types"
+import { toast } from "sonner"
 
 const statusSteps = [
   { status: "pending", label: "Принят", icon: Package, color: "text-blue-400" },
+  { status: "awaiting_payment", label: "Ожидает оплаты", icon: Clock, color: "text-orange-400" },
   { status: "confirmed", label: "Подтверждён", icon: CheckCircle, color: "text-cyan-400" },
   { status: "preparing", label: "Готовится", icon: ChefHat, color: "text-yellow-400" },
   { status: "delivering", label: "Доставляется", icon: Truck, color: "text-orange-400" },
   { status: "delivered", label: "Доставлен", icon: MapPin, color: "text-green-400" },
   { status: "cancelled", label: "Отменён", icon: XCircle, color: "text-red-400" },
+  { status: "payment_cancelled", label: "Оплата отменена", icon: XCircle, color: "text-red-400" },
 ]
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Ожидает", variant: "secondary" },
+  awaiting_payment: { label: "Ожидает оплаты", variant: "secondary" },
   confirmed: { label: "Подтверждён", variant: "default" },
   preparing: { label: "Готовится", variant: "default" },
   delivering: { label: "Доставляется", variant: "default" },
   delivered: { label: "Доставлен", variant: "outline" },
   cancelled: { label: "Отменён", variant: "destructive" },
+  payment_cancelled: { label: "Оплата отменена", variant: "destructive" },
 }
 
 export function TrackOrderContent() {
@@ -43,6 +48,7 @@ export function TrackOrderContent() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!orderId) return
@@ -54,6 +60,11 @@ export function TrackOrderContent() {
 
         if (data.success) {
           setOrder(data.data)
+          // Если заказ ожидает оплату — получаем ссылку
+          if (data.data?.status === "awaiting_payment" && data.data?.payment === "card") {
+            // Пробуем получить paymentUrl из заказа
+            // Если его нет — можно создать новый платёж
+          }
         } else {
           setError(data.message || "Заказ не найден")
         }
@@ -69,11 +80,33 @@ export function TrackOrderContent() {
     return () => clearInterval(interval)
   }, [orderId])
 
+  const handlePayOrder = async () => {
+    if (!order) return
+    try {
+      const res = await fetch("/api/payments/yookassa/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          returnUrl: `${window.location.origin}/payment-success?order_id=${order.id}`,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.payment?.confirmationUrl) {
+        window.location.href = data.payment.confirmationUrl
+      } else {
+        toast.error(data.message || "Ошибка создания платежа")
+      }
+    } catch {
+      toast.error("Ошибка соединения с сервером")
+    }
+  }
+
   const currentStepIndex = order
     ? statusSteps.findIndex((s) => s.status === order.status)
     : -1
 
-  const isCancelled = order?.status === "cancelled"
+  const isCancelled = order?.status === "cancelled" || order?.status === "payment_cancelled"
 
   if (!orderId) {
     return (
@@ -158,6 +191,41 @@ export function TrackOrderContent() {
             </div>
           </div>
 
+          {/* Payment Alert */}
+          {order.status === "awaiting_payment" && order.payment === "card" && (
+            <Card className="bg-orange-500/10 border-orange-500/30">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Clock className="h-5 w-5 text-orange-400" />
+                  <h3 className="font-semibold text-foreground">Заказ ожидает оплаты</h3>
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  Оплатите заказ, чтобы мы начали его готовить
+                </p>
+                <Button onClick={handlePayOrder} size="lg" className="w-full">
+                  Оплатить заказ
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {order.status === "payment_cancelled" && (
+            <Card className="bg-red-500/10 border-red-500/30">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <XCircle className="h-5 w-5 text-red-400" />
+                  <h3 className="font-semibold text-foreground">Оплата была отменена</h3>
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  Вы можете оплатить заказ заново или связаться с поддержкой
+                </p>
+                <Button onClick={handlePayOrder} size="lg" className="w-full">
+                  Оплатить заново
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Progress Tracker */}
           {!isCancelled && (
             <Card className="bg-card border-border">
@@ -165,7 +233,7 @@ export function TrackOrderContent() {
                 <h3 className="font-semibold text-foreground mb-6">Статус выполнения</h3>
                 <div className="space-y-0">
                   {statusSteps
-                    .filter((s) => s.status !== "cancelled")
+                    .filter((s) => s.status !== "cancelled" && s.status !== "awaiting_payment" && s.status !== "payment_cancelled")
                     .map((step, index) => {
                       const Icon = step.icon
                       const isCompleted = index <= currentStepIndex

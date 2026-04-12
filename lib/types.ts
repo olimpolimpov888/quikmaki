@@ -60,6 +60,7 @@ export interface CreateOrderRequest {
   promoCode?: string
   discount?: number
   loyaltyDiscount?: number
+  deliveryFee?: number
 }
 
 export interface Order {
@@ -67,7 +68,7 @@ export interface Order {
   userId?: string
   items: OrderItem[]
   total: number
-  status: "pending" | "confirmed" | "preparing" | "delivering" | "delivered" | "cancelled"
+  status: "pending" | "awaiting_payment" | "confirmed" | "preparing" | "delivering" | "delivered" | "cancelled" | "payment_cancelled"
   createdAt: string
   updatedAt: string
   customer: {
@@ -81,6 +82,7 @@ export interface Order {
   promoCode?: string
   discount?: number
   loyaltyDiscount?: number
+  deliveryFee?: number
   orderNumber: string
 }
 
@@ -88,6 +90,8 @@ export interface CreateOrderResponse {
   success: boolean
   order?: Order
   message?: string
+  paymentUrl?: string
+  paymentId?: string
 }
 
 // ============ Products ============
@@ -191,6 +195,123 @@ export interface ReferralInfo {
     createdAt: string
     converted: boolean
   }>
+}
+
+// ============ YooKassa Payments ============
+
+export interface YooKassaPayment {
+  id: string
+  orderId: string
+  yookassaPaymentId: string
+  amount: number
+  currency: string
+  status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled'
+  paymentMethod: string
+  confirmationUrl: string | null
+  paidAt: string | null
+  expiresAt: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreatePaymentRequest {
+  orderId: string
+  amount: number
+  description: string
+  customerEmail?: string
+  customerPhone?: string
+  items: Array<{
+    name: string
+    quantity: number
+    price: number
+  }>
+}
+
+export interface CreatePaymentResponse {
+  success: boolean
+  paymentId?: string
+  confirmationUrl?: string
+  status?: string
+  message?: string
+}
+
+// ============ Delivery Cities ============
+
+export interface DeliveryCity {
+  id: string
+  name: string
+  deliveryFee: number
+  minOrderAmount: number
+  isActive: boolean
+  createdAt: string
+}
+
+// ============ Working Hours ============
+
+export interface WorkingHour {
+  id: string
+  dayOfWeek: number // 0=Вс, 1=Пн, ...
+  openTime: string
+  closeTime: string
+  breakStart: string | null
+  breakEnd: string | null
+  isActive: boolean
+}
+
+// ============ Products ============
+
+export interface ProductCategory {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  description: string | null
+  sortOrder: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface ProductModifier {
+  id: string
+  productId: string
+  name: string
+  price: number
+  isRequired: boolean
+  sortOrder: number
+  createdAt: string
+}
+
+export interface Ingredient {
+  id: string
+  name: string
+  allergens: string[]
+  isVegan: boolean
+  isVegetarian: boolean
+  createdAt: string
+}
+
+export interface ProductIngredient {
+  id: string
+  productId: string
+  ingredientId: string
+  quantity: string | null
+  createdAt: string
+}
+
+// ============ Promotional Banners ============
+
+export interface PromotionalBanner {
+  id: string
+  title: string
+  subtitle: string | null
+  imageUrl: string | null
+  link: string | null
+  isActive: boolean
+  startDate: string
+  endDate: string | null
+  sortOrder: number
+  createdAt: string
 }
 
 // ============ API Response wrapper ============

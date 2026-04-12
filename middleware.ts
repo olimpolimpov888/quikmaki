@@ -24,8 +24,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Только обновляем куки Supabase
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Защита админ-панели
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    // TODO: Проверка роли администратора
+    // const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single()
+    // if (userData?.role !== 'admin') {
+    //   return NextResponse.redirect(new URL('/', request.url))
+    // }
+  }
 
   return supabaseResponse
 }

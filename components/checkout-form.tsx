@@ -10,12 +10,23 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCartStore } from "@/lib/cart-store"
 import { useAuthStore } from "@/lib/auth-store"
-import { CreditCard, Banknote, Clock, MapPin, Mail, Phone, User, MessageSquare, Tag, Sparkles } from "lucide-react"
+import { CreditCard, Banknote, Clock, MapPin, Mail, Phone, User, MessageSquare, Tag, Sparkles, Truck, AlertCircle } from "lucide-react"
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import { useRestaurantStatus } from "./restaurant-status"
+
+interface DeliveryCity {
+  id: string
+  name: string
+  deliveryFee: number
+  minOrderAmount: number
+  isActive: boolean
+}
 
 const loyaltyTiers = [
   { name: "Новичок", minPoints: 0, discount: 0 },
@@ -31,10 +42,20 @@ interface CheckoutFormProps {
 }
 
 export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
-  const { items, getTotalPrice, clearCart, selectedCity } = useCartStore()
+  const { items, getTotalPrice, clearCart, selectedCity, setCity } = useCartStore()
   const { user } = useAuthStore()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const total = getTotalPrice()
+
+  // Delivery cities
+  const [cities, setCities] = useState<DeliveryCity[]>([])
+  const [selectedDeliveryCity, setSelectedDeliveryCity] = useState<DeliveryCity | null>(null)
+  const deliveryFee = selectedDeliveryCity?.deliveryFee || 0
+  const minOrderAmount = selectedDeliveryCity?.minOrderAmount || 0
+
+  // Restaurant status
+  const { isOpen: restaurantOpen, message: restaurantMessage, loading: statusLoading } = useRestaurantStatus()
 
   // Loyalty discount
   const [loyaltyPoints, setLoyaltyPoints] = useState(0)
@@ -69,6 +90,31 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
     }
     fetchLoyalty()
   }, [user?.id, total])
+
+  // Load delivery cities
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const res = await fetch("/api/cities")
+        const data = await res.json()
+        if (data.success && data.data) {
+          setCities(data.data)
+          // Если есть выбранный город в корзине — находим его
+          if (selectedCity) {
+            const found = data.data.find((c: DeliveryCity) => c.name === selectedCity)
+            if (found) setSelectedDeliveryCity(found)
+          } else if (data.data.length > 0) {
+            // По умолчанию первый город
+            setSelectedDeliveryCity(data.data[0])
+            setCity(data.data[0].name)
+          }
+        }
+      } catch {
+        console.error("Failed to fetch delivery cities")
+      }
+    }
+    fetchCities()
+  }, [selectedCity, setCity])
 
   const finalTotal = Math.max(0, total - loyaltyDiscount - promoDiscount)
 
@@ -119,6 +165,12 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
   }
 
   const onSubmit = async (data: CheckoutFormData) => {
+    // Проверка минимальной суммы заказа
+    if (minOrderAmount > 0 && total < minOrderAmount) {
+      toast.error(`Минимальная сумма заказа для ${selectedDeliveryCity?.name}: ${minOrderAmount} ₽`)
+      return
+    }
+
     setLoading(true)
 
     const totalDiscount = loyaltyDiscount + promoDiscount
@@ -133,11 +185,11 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
         category: item.category,
         description: item.description,
       })),
-      total: finalTotal,
+      total: finalTotal + deliveryFee,
       discount: totalDiscount,
       customer: { name: data.name, phone: data.phone, email: data.email || undefined },
       delivery: {
-        city: selectedCity,
+        city: selectedDeliveryCity?.name || null,
         address: data.address,
         apartment: data.apartment || "",
         time: data.deliveryTime === "scheduled" && data.scheduledTime
@@ -148,6 +200,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       comment: data.comment,
       promoCode: promoDiscount > 0 ? data.promoCode : undefined,
       loyaltyDiscount: loyaltyDiscount,
+      deliveryFee,
     }
 
     try {
@@ -161,6 +214,15 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
 
       if (result.success && result.order) {
         clearCart()
+
+        // Если оплата картой и есть ссылка на оплату — перенаправляем
+        if (data.paymentMethod === "card" && result.paymentUrl) {
+          toast.success("Заказ #" + result.order.orderNumber + " создан! Перенаправляем на оплату...")
+          window.location.href = result.paymentUrl
+          return
+        }
+
+        // Для наличных — показываем успех
         toast.success("Заказ #" + result.order.orderNumber + " оформлен!")
         onSuccess(result.order.orderNumber)
       } else {
@@ -240,10 +302,42 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       <div className="space-y-4">
         <h3 className="font-semibold text-foreground">Адрес доставки</h3>
 
-        {selectedCity && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>Город: {selectedCity}</span>
+        {/* City Selector */}
+        {cities.length > 0 && (
+          <div className="space-y-2">
+            <Label>Город доставки</Label>
+            <Select
+              value={selectedDeliveryCity?.name || ""}
+              onValueChange={(value) => {
+                const city = cities.find((c) => c.name === value)
+                if (city) {
+                  setSelectedDeliveryCity(city)
+                  setCity(city.name)
+                }
+              }}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите город" />
+              </SelectTrigger>
+              <SelectContent>
+                {cities.map((city) => (
+                  <SelectItem key={city.id} value={city.name}>
+                    {city.name} — доставка {city.deliveryFee} ₽ (от {city.minOrderAmount} ₽)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Min order amount warning */}
+        {minOrderAmount > 0 && total < minOrderAmount && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm">
+            <Truck className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+            <span className="text-yellow-600 dark:text-yellow-400">
+              Минимальная сумма заказа: {minOrderAmount} ₽ (не хватает {(minOrderAmount - total).toLocaleString("ru-RU")} ₽)
+            </span>
           </div>
         )}
 
@@ -428,13 +522,30 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
             <span>-{promoDiscount.toLocaleString("ru-RU")} ₽</span>
           </div>
         )}
+        {deliveryFee > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Доставка:</span>
+            <span>{deliveryFee.toLocaleString("ru-RU")} ₽</span>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Итого:</span>
-          <span className="text-xl font-bold">{finalTotal.toLocaleString("ru-RU")} ₽</span>
+          <span className="text-xl font-bold">{(finalTotal + deliveryFee).toLocaleString("ru-RU")} ₽</span>
         </div>
-        <Button type="submit" className="w-full" size="lg" disabled={loading}>
-          {loading ? "Оформление..." : "Оформить заказ"}
+        <Button
+          type="submit"
+          className="w-full"
+          size="lg"
+          disabled={loading || (minOrderAmount > 0 && total < minOrderAmount) || restaurantOpen === false}
+        >
+          {loading ? "Оформление..." : restaurantOpen === false ? "Ресторан закрыт" : "Оформить заказ"}
         </Button>
+        {restaurantOpen === false && restaurantMessage && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm">
+            <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+            <span className="text-yellow-600 dark:text-yellow-400">{restaurantMessage}</span>
+          </div>
+        )}
         <Button variant="ghost" className="w-full" type="button" onClick={onCancel} disabled={loading}>
           Отмена
         </Button>

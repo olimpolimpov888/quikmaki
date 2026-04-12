@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SupportChat } from '@/components/support-chat'
+import { ClosedModal } from '@/components/restaurant-status'
 import './globals.css'
 
 const inter = Inter({
@@ -100,6 +101,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
           {children}
+          <ClosedModal />
           <Toaster
             position="top-right"
             richColors
