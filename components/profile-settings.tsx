@@ -117,11 +117,16 @@ export function ProfileSettings() {
       return
     }
 
+    // Проверка: новый пароль не должен совпадать со старым
+    if (currentPassword === newPassword) {
+      toast.error("Новый пароль должен отличаться от текущего")
+      return
+    }
+
     setSaving(true)
     try {
       const supabase = getSupabase()
 
-      // Supabase требует текущий пароль для обновления
       // Сначала проверяем текущий пароль через наш API
       const loginResponse = await fetch("/api/auth/login", {
         method: "POST",
@@ -147,7 +152,7 @@ export function ProfileSettings() {
       } else {
         setCurrentPassword("")
         setNewPassword("")
-        toast.success("Пароль изменён!")
+        toast.success("Пароль успешно изменён!")
       }
     } catch {
       toast.error("Ошибка соединения с сервером")
