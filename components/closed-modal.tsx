@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,7 @@ import { Clock } from "lucide-react"
 
 export function ClosedModal() {
   const [isOpen, setIsOpen] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     // Показываем только один раз за визит (сессию)
@@ -34,6 +36,11 @@ export function ClosedModal() {
     checkWorkingHours()
   }, [])
 
+  const handlePreorder = () => {
+    setIsOpen(false)
+    router.push("/#menu")
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md">
@@ -43,12 +50,12 @@ export function ClosedModal() {
           </div>
           <DialogTitle className="text-center">Мы сейчас закрыты</DialogTitle>
           <DialogDescription className="text-center">
-            Мы работаем ежедневно с 10:00 до 22:00. 
+            Мы работаем ежедневно с 10:00 до 22:00.
             Вы можете оформить предзаказ, и мы свяжемся с вами в рабочее время.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 mt-4">
-          <Button onClick={() => setIsOpen(false)}>
+          <Button onClick={handlePreorder}>
             Оформить предзаказ
           </Button>
           <Button variant="outline" onClick={() => setIsOpen(false)}>
