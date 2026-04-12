@@ -131,7 +131,7 @@ export async function updateUserStats(userId: string, total: number) {
   const supabase = await createClient()
   // Получаем текущие значения
   const { data: rawUser } = await supabase.from('users').select('order_count, total_spent, loyalty_points').eq('id', userId).single()
-  
+
   if (rawUser) {
     await supabase.from('users').update({
       order_count: (rawUser.order_count || 0) + 1,
@@ -139,6 +139,21 @@ export async function updateUserStats(userId: string, total: number) {
       loyalty_points: (rawUser.loyalty_points || 0) + Math.floor(total * 0.05),
     }).eq('id', userId)
   }
+}
+
+export async function updateUserProfile(userId: string, data: { name: string; email?: string; phone: string }) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('users')
+    .update({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+    })
+    .eq('id', userId)
+
+  if (error) throw error
+  return true
 }
 
 // ========================

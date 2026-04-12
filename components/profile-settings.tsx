@@ -20,6 +20,7 @@ import {
   Trash2,
   Save,
 } from "lucide-react"
+import { toast } from "sonner"
 
 export function ProfileSettings() {
   const { user, logout } = useAuthStore()
@@ -29,6 +30,7 @@ export function ProfileSettings() {
   const [showPassword, setShowPassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  const [saving, setSaving] = useState(false)
 
   // Notification preferences
   const [notifyEmail, setNotifyEmail] = useState(true)
@@ -36,28 +38,66 @@ export function ProfileSettings() {
   const [notifyPush, setNotifyPush] = useState(true)
   const [notifyPromos, setNotifyPromos] = useState(true)
 
-  const handleSaveProfile = () => {
-    // TODO: Save to API
-    localStorage.setItem(
-      "user-profile",
-      JSON.stringify({ name, email, phone })
-    )
-    alert("Профиль сохранён!")
+  const handleSaveProfile = async () => {
+    if (!name || !phone) {
+      toast.error("Имя и телефон обязательны")
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success("Профиль сохранён!")
+      } else {
+        toast.error(result.message || "Ошибка сохранения")
+      }
+    } catch {
+      toast.error("Ошибка соединения с сервером")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) {
-      alert("Заполните оба поля")
+      toast.error("Заполните оба поля")
       return
     }
     if (newPassword.length < 6) {
-      alert("Пароль должен быть минимум 6 символов")
+      toast.error("Пароль должен быть минимум 6 символов")
       return
     }
-    // TODO: Send to API
-    setCurrentPassword("")
-    setNewPassword("")
-    alert("Пароль изменён!")
+
+    setSaving(true)
+    try {
+      const response = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setCurrentPassword("")
+        setNewPassword("")
+        toast.success("Пароль изменён!")
+      } else {
+        toast.error(result.message || "Ошибка смены пароля")
+      }
+    } catch {
+      toast.error("Ошибка соединения с сервером")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDeleteAccount = () => {
@@ -125,9 +165,9 @@ export function ProfileSettings() {
             </div>
           </div>
 
-          <Button onClick={handleSaveProfile} className="w-full">
+          <Button onClick={handleSaveProfile} className="w-full" disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            Сохранить
+            {saving ? "Сохранение..." : "Сохранить"}
           </Button>
         </CardContent>
       </Card>
@@ -174,7 +214,9 @@ export function ProfileSettings() {
               />
             </div>
 
-            <Button onClick={handleChangePassword}>Изменить пароль</Button>
+            <Button onClick={handleChangePassword} disabled={saving}>
+              {saving ? "Изменение..." : "Изменить пароль"}
+            </Button>
           </div>
         </CardContent>
       </Card>
