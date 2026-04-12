@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,15 +11,23 @@ interface OrderStatusNotificationProps {
   orderId: string
   orderNumber: string
   currentStatus: string
+  onStatusChange?: (newStatus: string) => void
 }
 
 export function OrderStatusNotification({
   orderId,
   orderNumber,
   currentStatus,
+  onStatusChange,
 }: OrderStatusNotificationProps) {
+  const [status, setStatus] = useState(currentStatus)
+
   useEffect(() => {
-    // Show notification when status changes
+    setStatus(currentStatus)
+  }, [currentStatus])
+
+  // Show notification when status changes
+  useEffect(() => {
     const statusMessages: Record<string, { title: string; description: string }> = {
       confirmed: {
         title: "Заказ подтверждён! ✓",
@@ -39,14 +47,14 @@ export function OrderStatusNotification({
       },
     }
 
-    const message = statusMessages[currentStatus]
+    const message = statusMessages[status]
     if (message) {
       toast(message.title, {
         description: message.description,
         duration: 5000,
       })
     }
-  }, [currentStatus, orderNumber])
+  }, [status, orderNumber])
 
   // Poll for status updates
   useEffect(() => {
@@ -55,9 +63,10 @@ export function OrderStatusNotification({
         const response = await fetch(`/api/orders?orderId=${orderId}`)
         const data = await response.json()
 
-        if (data.success && data.data.status !== currentStatus) {
-          // Status changed - reload or update
-          window.location.reload()
+        if (data.success && data.data.status !== status) {
+          const newStatus = data.data.status
+          setStatus(newStatus)
+          onStatusChange?.(newStatus)
         }
       } catch {
         // Ignore errors
@@ -66,7 +75,7 @@ export function OrderStatusNotification({
 
     const interval = setInterval(checkStatus, 30000) // Check every 30 seconds
     return () => clearInterval(interval)
-  }, [orderId, currentStatus])
+  }, [orderId, status, onStatusChange])
 
   const statusIcons: Record<string, React.ReactNode> = {
     pending: <Bell className="h-5 w-5 text-blue-400" />,
@@ -81,13 +90,13 @@ export function OrderStatusNotification({
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {statusIcons[currentStatus] || <Bell className="h-5 w-5" />}
+            {statusIcons[status] || <Bell className="h-5 w-5" />}
             <div>
               <p className="font-medium text-foreground">
                 Заказ #{orderNumber}
               </p>
               <p className="text-sm text-muted-foreground">
-                Статус: {currentStatus}
+                Статус: {status}
               </p>
             </div>
           </div>
