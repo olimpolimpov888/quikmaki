@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getReferralInfo } from "@/lib/db"
+import { createClient } from "@/lib/supabase/server"
 import type { ReferralInfo, ApiResponse } from "@/lib/types"
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url)
-    const userId = url.searchParams.get("userId")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json<ApiResponse>(
-        { success: false, message: "userId обязателен" },
-        { status: 400 }
+        { success: false, message: "Не авторизован" },
+        { status: 401 }
       )
     }
 
-    const referralInfo = getReferralInfo(userId)
+    const referralInfo = await getReferralInfo(user.id)
 
     if (!referralInfo) {
       return NextResponse.json<ApiResponse>(

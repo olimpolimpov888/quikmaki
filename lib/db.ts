@@ -313,7 +313,7 @@ export async function subscribe(email: string, name?: string) {
 
 export async function getUserProfileStats(userId: string) {
   const supabase = await createClient()
-  
+
   // 1. Базовые данные
   const { data: user } = await supabase
     .from('users')
@@ -360,5 +360,116 @@ export async function getUserProfileStats(userId: string) {
       nightOwl: false,
       generous: false,
     }
+  }
+}
+
+// ========================
+// Реферальная система
+// ========================
+
+export async function getReferralInfo(userId: string) {
+  const supabase = await createClient()
+
+  // Получаем реферальный код пользователя
+  const { data: user } = await supabase
+    .from('users')
+    .select('referral_code, loyalty_points')
+    .eq('id', userId)
+    .single()
+
+  if (!user) return null
+
+  // Получаем рефералов (пользователей, которые использовали этот код)
+  const { data: referrals } = await supabase
+    .from('referrals')
+    .select('*, referred_user:users(name, email, created_at)')
+    .eq('referrer_id', userId)
+    .order('created_at', { ascending: false })
+
+  // Считаем успешных рефералов (тех кто сделал заказ)
+  const successfulReferrals = referrals?.filter(r => r.converted) || []
+
+  return {
+    referralCode: user.referral_code,
+    totalReferrals: referrals?.length || 0,
+    successfulReferrals: successfulReferrals.length,
+    bonusPoints: user.loyalty_points || 0,
+    referrals: (referrals || []).map(r => ({
+      id: r.id,
+      name: r.referred_user?.name,
+      email: r.referred_user?.email,
+      createdAt: r.created_at,
+      converted: r.converted,
+    }))
+  }
+}
+
+export async function applyReferralCode(newUserId: string, referralCode: string) {
+  const supabase = await createClient()
+
+  // Находим пользователя с таким реферальным кодом
+  const { data: referrer } = await supabase
+    .from('users')
+    .select('id, loyalty_points')
+    .eq('referral_code', referralCode.toUpperCase())
+    .single()
+
+  if (!referrer) return { success: false, message: 'Неверный реферальный код' }
+
+  // Создаём запись о реферале
+  const { error: referralError } = await supabase
+    .from('referrals')
+    .insert({
+      referrer_id: referrer.id,
+      referred_id: newUserId,
+      converted: false,
+    })
+
+  if (referralError) return { success: false, message: referralError.message }
+
+  // Начисляем бонусы рефереру
+  const bonusPoints = 100
+  await supabase
+    .from('users')
+    .update({
+      loyalty_points: (referrer.loyalty_points || 0) + bonusPoints,
+    })
+    .eq('id', referrer.id)
+
+  return { success: true, message: 'Реферальный код применён!' }
+}
+
+export async function markReferralConverted(newUserId: string) {
+  const supabase = await createClient()
+
+  // Находим реферальную запись
+  const { data: referral } = await supabase
+    .from('referrals')
+    .select('referrer_id')
+    .eq('referred_id', newUserId)
+    .single()
+
+  if (!referral) return
+
+  // Отмечаем как конвертированный
+  await supabase
+    .from('referrals')
+    .update({ converted: true })
+    .eq('referred_id', newUserId)
+
+  // Начисляем дополнительные бонусы рефереру за конверсию
+  const { data: referrer } = await supabase
+    .from('users')
+    .select('loyalty_points')
+    .eq('id', referral.referrer_id)
+    .single()
+
+  if (referrer) {
+    await supabase
+      .from('users')
+      .update({
+        loyalty_points: (referrer.loyalty_points || 0) + 50,
+      })
+      .eq('id', referral.referrer_id)
   }
 }

@@ -22,6 +22,7 @@ export default function ReferralPage() {
     successfulReferrals: 0,
     bonusPoints: 0,
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -29,18 +30,28 @@ export default function ReferralPage() {
       return
     }
 
-    // Generate or fetch referral code
-    const code = user?.id ? `QM${user.id.slice(0, 6).toUpperCase()}` : "DEMO123"
-    setReferralCode(code)
+    const fetchReferralInfo = async () => {
+      try {
+        const response = await fetch("/api/referrals")
+        const result = await response.json()
 
-    // Load stats
-    const referrals = JSON.parse(localStorage.getItem("referrals") || "[]")
-    setReferralStats({
-      totalReferrals: referrals.length,
-      successfulReferrals: referrals.filter((r: { ordered: boolean }) => r.ordered).length,
-      bonusPoints: referrals.length * 100,
-    })
-  }, [isAuthenticated, router, user])
+        if (result.success && result.data) {
+          setReferralCode(result.data.referralCode || "")
+          setReferralStats({
+            totalReferrals: result.data.totalReferrals || 0,
+            successfulReferrals: result.data.successfulReferrals || 0,
+            bonusPoints: result.data.bonusPoints || 0,
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching referral info:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReferralInfo()
+  }, [isAuthenticated, router])
 
   const referralLink = typeof window !== "undefined"
     ? `${window.location.origin}/?referral=${referralCode}`
