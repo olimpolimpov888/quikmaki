@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createOrder, validatePromoCode, incrementPromoCodeUsage } from "@/lib/db"
+import { createOrder, validatePromoCode, incrementPromoCodeUsage, getOrders } from "@/lib/db"
 import { createClient } from "@/lib/supabase/server"
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
+
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const userId = url.searchParams.get("userId")
+
+    // Получаем заказы текущего пользователя
+    const orders = await getOrders(userId || undefined)
+    return NextResponse.json({ success: true, data: orders })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
