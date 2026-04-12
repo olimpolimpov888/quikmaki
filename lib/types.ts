@@ -176,10 +176,17 @@ export interface SubscribeRequest {
 // ============ Referral ============
 
 export interface ReferralInfo {
-  code: string
+  referralCode: string
   totalReferrals: number
   successfulReferrals: number
   bonusPoints: number
+  referrals?: Array<{
+    id: string
+    name?: string
+    email?: string
+    createdAt: string
+    converted: boolean
+  }>
 }
 
 // ============ API Response wrapper ============
