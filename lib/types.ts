@@ -58,6 +58,8 @@ export interface CreateOrderRequest {
   payment: "card" | "cash"
   comment?: string
   promoCode?: string
+  discount?: number
+  loyaltyDiscount?: number
 }
 
 export interface Order {
@@ -78,6 +80,7 @@ export interface Order {
   comment?: string
   promoCode?: string
   discount?: number
+  loyaltyDiscount?: number
   orderNumber: string
 }
 

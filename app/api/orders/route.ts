@@ -27,33 +27,32 @@ export async function POST(request: NextRequest) {
     if (!body.customer?.name || !body.customer?.phone) return NextResponse.json({ success: false, message: "Укажите имя и телефон" }, { status: 400 })
     if (!body.delivery?.address) return NextResponse.json({ success: false, message: "Укажите адрес" }, { status: 400 })
 
-    // Проверка промокода
-    let discount = 0
-    let finalTotal = body.total
+    // Общая скидка = промокод + лояльность
+    const loyaltyDiscount = body.loyaltyDiscount || 0
+    let promoDiscount = 0
     if (body.promoCode) {
       const res = await validatePromoCode(body.promoCode, body.total)
       if (res.valid && res.discount) {
-        discount = res.discount
-        finalTotal = body.total - discount
+        promoDiscount = res.discount
       }
     }
+    const totalDiscount = loyaltyDiscount + promoDiscount
 
     // Создание
-    console.log("[DEBUG] Creating order with userId:", userId)
     const order = await createOrder({
       items: body.items,
-      total: finalTotal,
+      total: body.total,
       userId,
       customer: body.customer,
       delivery: body.delivery,
       payment: body.payment,
       comment: body.comment,
       promoCode: body.promoCode,
-      discount,
+      discount: totalDiscount,
+      loyaltyDiscount,
     })
-    console.log("[DEBUG] Order created:", order?.id)
 
-    if (body.promoCode && discount > 0) await incrementPromoCodeUsage(body.promoCode)
+    if (body.promoCode && promoDiscount > 0) await incrementPromoCodeUsage(body.promoCode)
 
     return NextResponse.json({ success: true, order }, { status: 201 })
   } catch (error: any) {

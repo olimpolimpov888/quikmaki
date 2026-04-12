@@ -34,6 +34,7 @@ function mapOrder(order: any) {
     updatedAt: order.updated_at,
     total: order.total,
     discount: order.discount || 0,
+    loyaltyDiscount: order.loyalty_discount || 0,
     promoCode: order.promo_code,
     comment: order.comment,
     customer: {
@@ -185,6 +186,7 @@ export async function createOrder(data: any) {
       payment_method: data.payment,
       total: data.total,
       discount: data.discount || 0,
+      loyalty_discount: data.loyaltyDiscount || 0,
       promo_code: data.promoCode,
       comment: data.comment,
     })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations"
@@ -9,11 +9,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/lib/cart-store"
 import { useAuthStore } from "@/lib/auth-store"
-import { CreditCard, Banknote, Clock, MapPin, Mail, Phone, User, MessageSquare, Tag } from "lucide-react"
+import { CreditCard, Banknote, Clock, MapPin, Mail, Phone, User, MessageSquare, Tag, Sparkles } from "lucide-react"
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+
+const loyaltyTiers = [
+  { name: "Новичок", minPoints: 0, discount: 0 },
+  { name: "Постоянный", minPoints: 500, discount: 3 },
+  { name: "Ценитель", minPoints: 1500, discount: 5 },
+  { name: "Гурман", minPoints: 3000, discount: 8 },
+  { name: "Легенда", minPoints: 5000, discount: 12 },
+]
 
 interface CheckoutFormProps {
   onSuccess: (orderNumber?: string) => void
@@ -26,13 +36,41 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
   const [loading, setLoading] = useState(false)
   const total = getTotalPrice()
 
+  // Loyalty discount
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0)
+  const [loyaltyTier, setLoyaltyTier] = useState<typeof loyaltyTiers[0] | null>(null)
+
   // Promo code
   const [promoCode, setPromoCode] = useState("")
   const [promoDiscount, setPromoDiscount] = useState(0)
   const [promoError, setPromoError] = useState("")
   const [applyingPromo, setApplyingPromo] = useState(false)
 
-  const finalTotal = total - promoDiscount
+  // Fetch loyalty info
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchLoyalty = async () => {
+      try {
+        const res = await fetch("/api/user/stats?userId=" + user.id)
+        const data = await res.json()
+        if (data.success && data.data) {
+          const points = data.data.points || 0
+          setLoyaltyPoints(points)
+          const tier = [...loyaltyTiers].reverse().find((t) => points >= t.minPoints) || loyaltyTiers[0]
+          setLoyaltyTier(tier)
+          if (tier.discount > 0) {
+            setLoyaltyDiscount(Math.round(total * (tier.discount / 100)))
+          }
+        }
+      } catch {
+        console.error("Failed to fetch loyalty info")
+      }
+    }
+    fetchLoyalty()
+  }, [user?.id, total])
+
+  const finalTotal = Math.max(0, total - loyaltyDiscount - promoDiscount)
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -67,7 +105,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       if (data.success && data.discount) {
         setPromoDiscount(data.discount)
         form.setValue("promoCode", promoCode)
-        toast.success(`Промокод применён! Скидка: ${data.discount} ₽`)
+        toast.success("Промокод применён! Скидка: " + data.discount + " ₽")
       } else {
         setPromoError(data.message || "Неверный промокод")
         toast.error(data.message || "Неверный промокод")
@@ -83,6 +121,8 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
   const onSubmit = async (data: CheckoutFormData) => {
     setLoading(true)
 
+    const totalDiscount = loyaltyDiscount + promoDiscount
+
     const orderData: CreateOrderRequest = {
       items: items.map((item) => ({
         id: item.id,
@@ -94,6 +134,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
         description: item.description,
       })),
       total: finalTotal,
+      discount: totalDiscount,
       customer: { name: data.name, phone: data.phone, email: data.email || undefined },
       delivery: {
         city: selectedCity,
@@ -106,6 +147,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       payment: data.paymentMethod,
       comment: data.comment,
       promoCode: promoDiscount > 0 ? data.promoCode : undefined,
+      loyaltyDiscount: loyaltyDiscount,
     }
 
     try {
@@ -119,7 +161,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
 
       if (result.success && result.order) {
         clearCart()
-        toast.success(`Заказ #${result.order.orderNumber} оформлен!`)
+        toast.success("Заказ #" + result.order.orderNumber + " оформлен!")
         onSuccess(result.order.orderNumber)
       } else {
         toast.error(result.message || "Ошибка оформления заказа")
@@ -296,6 +338,26 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
         </RadioGroup>
       </div>
 
+      {/* Loyalty Discount */}
+      {loyaltyTier && loyaltyTier.discount > 0 && (
+        <div className="space-y-2 p-4 rounded-lg bg-primary/5 border border-primary/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="font-medium text-foreground">Ваша скидка по программе лояльности</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                {loyaltyTier.name} · {loyaltyPoints} баллов
+              </Badge>
+              <span className="text-sm text-primary font-semibold">
+                -{loyaltyDiscount} ₽ ({loyaltyTier.discount}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Promo Code */}
       <div className="space-y-2">
         <Label htmlFor="checkout-promo" className="flex items-center gap-2">
@@ -348,15 +410,21 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
 
       {/* Total & Submit */}
       <div className="border-t pt-4 space-y-3">
-        {promoDiscount > 0 && (
+        {loyaltyDiscount > 0 && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Подытог:</span>
             <span className="text-muted-foreground line-through">{total.toLocaleString("ru-RU")} ₽</span>
           </div>
         )}
+        {loyaltyDiscount > 0 && (
+          <div className="flex items-center justify-between text-sm text-primary">
+            <span>Скидка лояльности ({loyaltyTier?.discount}%):</span>
+            <span>-{loyaltyDiscount.toLocaleString("ru-RU")} ₽</span>
+          </div>
+        )}
         {promoDiscount > 0 && (
           <div className="flex items-center justify-between text-sm text-green-500">
-            <span>Скидка:</span>
+            <span>Скидка по промокоду:</span>
             <span>-{promoDiscount.toLocaleString("ru-RU")} ₽</span>
           </div>
         )}
