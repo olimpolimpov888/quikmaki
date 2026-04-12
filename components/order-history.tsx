@@ -134,9 +134,8 @@ export function OrderHistory() {
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-foreground text-lg">История заказов ({orders.length})</h3>
-      <ScrollArea className="max-h-[70vh]">
-        <div className="space-y-4">
-          {orders.map((order) => {
+      <div className="space-y-4 pb-8">
+        {orders.map((order) => {
             const status = statusConfig[order.status] || statusConfig.pending
             return (
               <Card key={order.id} className="bg-card border-border overflow-hidden">
@@ -206,7 +205,7 @@ export function OrderHistory() {
             )
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
