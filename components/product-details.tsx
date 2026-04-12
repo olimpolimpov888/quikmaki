@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -35,15 +35,21 @@ export function ProductDetails({ product, category, relatedProducts }: ProductDe
   const { addItem, items } = useCartStore()
   const { toggleItem, isFavorite } = useFavoritesStore()
   const [isAdding, setIsAdding] = useState(false)
+  const isAddingRef = useRef(false)
 
   const inCart = items.some((item) => item.id === product.id)
   const favorite = isFavorite(product.id)
 
   const handleAddToCart = () => {
+    if (isAddingRef.current) return // Защита от race condition
+    isAddingRef.current = true
     setIsAdding(true)
     addItem(product)
     toast.success(`${product.name} добавлен в корзину`)
-    setTimeout(() => setIsAdding(false), 300)
+    setTimeout(() => {
+      isAddingRef.current = false
+      setIsAdding(false)
+    }, 300)
   }
 
   const handleToggleFavorite = () => {

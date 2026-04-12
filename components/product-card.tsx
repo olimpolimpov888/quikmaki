@@ -7,7 +7,7 @@ import { useFavoritesStore } from "@/lib/favorites-store"
 import type { Product } from "@/lib/data"
 import { Plus, Check, Heart } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -22,16 +22,22 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toggleItem, isFavorite } = useFavoritesStore()
   const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
+  const isAddingRef = useRef(false)
 
   const inCart = items.some((item) => item.id === product.id)
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity || 0
   const favorite = isFavorite(product.id)
 
   const handleAddToCart = () => {
+    if (isAddingRef.current) return // Защита от race condition
+    isAddingRef.current = true
     setIsAdding(true)
     addItem(product)
     toast.success(`${product.name} добавлен в корзину`)
-    setTimeout(() => setIsAdding(false), 300)
+    setTimeout(() => {
+      isAddingRef.current = false
+      setIsAdding(false)
+    }, 300)
   }
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
