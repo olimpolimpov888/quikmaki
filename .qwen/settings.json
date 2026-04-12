@@ -19,7 +19,10 @@
       "Bash(dir *)",
       "Bash(move *)",
       "Bash(findstr *)",
-      "Bash(vercel *)"
+      "Bash(vercel *)",
+      "Bash(git merge *)",
+      "Bash(rm *)",
+      "Bash(del *)"
     ]
   },
   "$version": 3

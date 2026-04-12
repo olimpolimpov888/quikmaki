@@ -68,8 +68,15 @@ export function OrderHistory() {
         image: item.image || "",
         category: item.category || "",
         description: item.description || "",
-        quantity: item.quantity,
       })
+      // Обновляем количество если нужно больше 1
+      if (item.quantity > 1) {
+        const cart = useCartStore.getState()
+        const existing = cart.items.find((i) => i.id === item.id)
+        if (existing && existing.quantity < item.quantity) {
+          useCartStore.getState().updateQuantity(item.id, item.quantity)
+        }
+      }
     })
     toast.success(`Товары из заказа ${order.orderNumber || order.id} добавлены в корзину`)
     router.push("/#menu")

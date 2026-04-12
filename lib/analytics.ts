@@ -52,7 +52,8 @@ interface AnalyticsPayload {
 
 export function trackEvent(event: AnalyticsEvent, payload?: AnalyticsPayload): void {
   try {
-    track(event, payload as Record<string, unknown>)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    track(event, payload as any)
   } catch {
     // Analytics not available
   }
