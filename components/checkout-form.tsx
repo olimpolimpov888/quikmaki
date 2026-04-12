@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useCartStore } from "@/lib/cart-store"
 import { useAuthStore } from "@/lib/auth-store"
-import { CreditCard, Banknote, Clock, MapPin, Phone, User, MessageSquare, Tag } from "lucide-react"
+import { CreditCard, Banknote, Clock, MapPin, Mail, Phone, User, MessageSquare, Tag } from "lucide-react"
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -175,7 +175,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
         <div className="space-y-2">
           <Label htmlFor="checkout-email">Email (необязательно)</Label>
           <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="checkout-email"
               type="email"
