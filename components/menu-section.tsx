@@ -99,12 +99,6 @@ export function MenuSection() {
         {/* Filters */}
         {activeCategory !== "promotions" && (
           <FilterBar
-            activeCategory={activeCategory}
-            searchQuery={searchQuery}
-            categories={filters.categorySlugs}
-            onCategoriesChange={(cats) =>
-              setFilters((prev) => ({ ...prev, categorySlugs: cats }))
-            }
             priceRange={filters.priceRange}
             onPriceRangeChange={(range) =>
               setFilters((prev) => ({ ...prev, priceRange: range }))
