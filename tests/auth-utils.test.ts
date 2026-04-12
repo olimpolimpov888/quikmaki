@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { hashPassword, generateId, generateOrderNumber, generateReferralCode } from '@/lib/auth-utils'
+import { hashPassword, verifyPassword, generateId, generateOrderNumber, generateReferralCode } from '@/lib/auth-utils'
 
 describe('Auth Utilities', () => {
   describe('hashPassword', () => {
     it('should hash a password consistently', async () => {
       const hash1 = await hashPassword('testpassword')
       const hash2 = await hashPassword('testpassword')
-      expect(hash1).toBe(hash2)
+      // bcrypt генерирует разные хэши из-за соли, но verify должен работать
+      expect(hash1).not.toBe(hash2) // разные из-за случайной соли
     })
 
     it('should produce different hashes for different passwords', async () => {
@@ -15,10 +16,22 @@ describe('Auth Utilities', () => {
       expect(hash1).not.toBe(hash2)
     })
 
-    it('should return a hex string', async () => {
+    it('should verify correct password', async () => {
+      const password = 'testpassword'
+      const hash = await hashPassword(password)
+      const isValid = await verifyPassword(password, hash)
+      expect(isValid).toBe(true)
+    })
+
+    it('should reject incorrect password', async () => {
+      const hash = await hashPassword('correctpassword')
+      const isValid = await verifyPassword('wrongpassword', hash)
+      expect(isValid).toBe(false)
+    })
+
+    it('should return a bcrypt hash string', async () => {
       const hash = await hashPassword('test')
-      expect(hash).toMatch(/^[a-f0-9]+$/)
-      expect(hash.length).toBe(64) // SHA-256 = 32 bytes = 64 hex chars
+      expect(hash).toMatch(/^\$2[aby]\$/)
     })
   })
 

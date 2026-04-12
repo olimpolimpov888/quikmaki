@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { findUserByEmailRaw } from "@/lib/db"
-import { hashPassword } from "@/lib/auth-utils"
+import { verifyPassword } from "@/lib/auth-utils"
 import type { LoginRequest, AuthResponse } from "@/lib/types"
 
 export async function POST(request: NextRequest) {
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Неверный email или пароль" }, { status: 401 })
     }
 
-    const hashedPassword = await hashPassword(body.password)
-    if (hashedPassword !== user.hashed_password) {
+    const isValid = await verifyPassword(body.password, user.hashed_password)
+    if (!isValid) {
       return NextResponse.json({ success: false, message: "Неверный email или пароль" }, { status: 401 })
     }
 
