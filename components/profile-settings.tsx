@@ -127,16 +127,13 @@ export function ProfileSettings() {
     try {
       const supabase = getSupabase()
 
-      // Сначала проверяем текущий пароль через наш API
-      const loginResponse = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
+      // Проверяем текущий пароль через Supabase Auth
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: currentPassword,
       })
 
-      const loginResult = await loginResponse.json()
-
-      if (!loginResult.success) {
+      if (signInError) {
         toast.error("Неверный текущий пароль")
         setSaving(false)
         return
