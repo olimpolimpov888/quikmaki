@@ -607,25 +607,54 @@ export async function getAllProducts(categoryId?: string) {
   const supabase = await createClient()
   let query = supabase
     .from('products')
-    .select('*, categories(name, slug)')
-    .eq('is_available', true)
+    .select('*')
     .order('sort_order')
 
   if (categoryId) {
     query = query.eq('category_id', categoryId)
   }
 
-  const { data } = await query
+  const { data, error } = await query
+  if (error) {
+    console.error('getAllProducts error:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function getProductsByCategorySlug(categorySlug: string) {
+  const supabase = await createClient()
+  // Сначала находим category_id по slug
+  const { data: category } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .single()
+
+  if (!category) return []
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category_id', category.id)
+    .order('sort_order')
+
+  if (error) {
+    console.error('getProductsByCategorySlug error:', error)
+    return []
+  }
   return data || []
 }
 
 export async function getProductById(id: string) {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
-    .select('*, categories(name, slug), product_modifiers(*), product_ingredients(*, ingredients(*))')
+    .select('*')
     .eq('id', id)
     .single()
+
+  if (error || !data) return null
   return data
 }
 
