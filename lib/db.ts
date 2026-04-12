@@ -26,6 +26,7 @@ function mapOrder(order: any) {
   if (!order) return null
   return {
     id: order.id,
+    userId: order.user_id,
     orderNumber: order.order_number,
     status: order.status,
     createdAt: order.created_at,
