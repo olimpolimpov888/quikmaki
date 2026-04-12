@@ -35,7 +35,6 @@ interface FilterBarProps {
 export function FilterBar({
   activeCategory,
   searchQuery,
-  categories: selectedCategories,
   onCategoriesChange,
   priceRange,
   onPriceRangeChange,
@@ -47,12 +46,13 @@ export function FilterBar({
 }: FilterBarProps) {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
 
+  // Используем activeCategory для фильтрации (совместимость с CategoryNav)
+  const selectedCategories = activeCategory && activeCategory !== "all" ? [activeCategory] : []
+
   const toggleCategory = (slug: string) => {
-    onCategoriesChange(
-      selectedCategories.includes(slug)
-        ? selectedCategories.filter((c) => c !== slug)
-        : [...selectedCategories, slug]
-    )
+    // Для совместимости с CategoryNav - передаем одну категорию или сбрасываем
+    const newCategory = selectedCategories.includes(slug) ? "all" : slug
+    onCategoriesChange(newCategory === "all" ? [] : [newCategory])
   }
 
   const hasActiveFilters =

@@ -58,22 +58,24 @@ export function CategoryNav({ activeCategory, onCategoryChange }: CategoryNavPro
           className="flex gap-2 py-3 overflow-x-auto scrollbar-hide"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {categories.map((category) => (
-            <Button
-              key={category.id}
-              variant={activeCategory === category.slug ? "default" : "ghost"}
-              size="sm"
-              className={cn(
-                "flex-shrink-0 rounded-full transition-all",
-                activeCategory === category.slug
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              )}
-              onClick={() => onCategoryChange(category.slug)}
-            >
-              {category.name}
-            </Button>
-          ))}
+          {categories
+            .filter((category) => category.slug !== "promotions")
+            .map((category) => (
+              <Button
+                key={category.id}
+                variant={activeCategory === category.slug ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "flex-shrink-0 rounded-full transition-all",
+                  activeCategory === category.slug
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+                onClick={() => onCategoryChange(category.slug)}
+              >
+                {category.name}
+              </Button>
+            ))}
         </div>
 
         {/* Right Arrow */}
