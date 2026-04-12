@@ -262,7 +262,7 @@ export function GlobalSearch() {
                 size="sm"
                 className="w-full text-xs text-muted-foreground h-8"
                 onClick={() => {
-                  router.push(`/#menu`)
+                  router.push(`/menu`)
                   setIsOpen(false)
                   setQuery("")
                 }}
