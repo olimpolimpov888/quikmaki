@@ -39,7 +39,7 @@ export function Footer() {
                   className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   <Phone className="h-4 w-4" />
-                  +7 (992) 345-8944
+                  +7 (950) 562-3931
                 </a>
               </li>
               <li>
@@ -134,7 +134,7 @@ export function Footer() {
             </div>
           </div>
           <div className="text-sm text-muted-foreground text-center">
-            <p>ИНН 661107552508 | Самозанятый</p>
+            <p>Теплоухов Арсений Павлович | ИНН 661107552508 | Самозанятый</p>
             <p>&copy; 2026 QuikMaki. Все права защищены.</p>
           </div>
         </div>
