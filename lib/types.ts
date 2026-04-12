@@ -34,6 +34,8 @@ export interface OrderItem {
   quantity: number
   price: number
   image?: string
+  category?: string
+  description?: string
 }
 
 export interface DeliveryInfo {

@@ -52,6 +52,8 @@ function mapOrder(order: any) {
       quantity: item.quantity,
       price: item.price,
       image: item.image,
+      category: item.category,
+      description: item.description,
     })),
   }
 }
@@ -198,6 +200,8 @@ export async function createOrder(data: any) {
       quantity: item.quantity,
       price: item.price,
       image: item.image,
+      category: item.category,
+      description: item.description,
     }))
 
     await supabase.from('order_items').insert(itemsToInsert)

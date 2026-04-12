@@ -66,8 +66,8 @@ export function OrderHistory() {
         name: item.name,
         price: item.price,
         image: item.image || "",
-        category: "",
-        description: "",
+        category: item.category || "",
+        description: item.description || "",
         quantity: item.quantity,
       })
     })
