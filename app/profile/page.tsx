@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProfileAvatar } from "@/components/profile-avatar"
@@ -21,9 +21,17 @@ import {
   Settings,
 } from "lucide-react"
 
+const TABS = ["profile", "orders", "favorites", "loyalty", "addresses", "settings"] as const
+type TabValue = typeof TABS[number]
+
 export default function ProfilePage() {
   const { isAuthenticated } = useAuthStore()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const defaultTab = searchParams.get("tab") as TabValue
+  const isValidTab = TABS.includes(defaultTab) ? defaultTab : "profile"
+  const [activeTab, setActiveTab] = useState<TabValue>(isValidTab)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -53,7 +61,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="space-y-6">
           <TabsList className="grid grid-cols-3 sm:grid-cols-6 gap-1 w-full max-w-2xl">
             <TabsTrigger value="profile" className="flex items-center gap-1 text-xs sm:text-sm">
               <User className="h-4 w-4" />

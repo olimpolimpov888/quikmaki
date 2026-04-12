@@ -13,7 +13,7 @@ export function OrderSuccess({ orderNumber, onClose }: OrderSuccessProps) {
   const router = useRouter()
 
   const handleViewOrders = () => {
-    router.push("/profile")
+    router.push("/profile?tab=orders")
   }
 
   return (
