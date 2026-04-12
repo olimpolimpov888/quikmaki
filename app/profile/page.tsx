@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -24,14 +24,10 @@ import {
 const TABS = ["profile", "orders", "favorites", "loyalty", "addresses", "settings"] as const
 type TabValue = typeof TABS[number]
 
-export default function ProfilePage() {
+function ProfileTabs({ initialTab }: { initialTab: TabValue }) {
   const { isAuthenticated } = useAuthStore()
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const defaultTab = searchParams.get("tab") as TabValue
-  const isValidTab = TABS.includes(defaultTab) ? defaultTab : "profile"
-  const [activeTab, setActiveTab] = useState<TabValue>(isValidTab)
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -51,7 +47,6 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Личный кабинет
@@ -129,5 +124,28 @@ export default function ProfilePage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+function TabReader() {
+  const searchParams = useSearchParams()
+  const defaultTab = searchParams.get("tab") as TabValue
+  const isValidTab = TABS.includes(defaultTab) ? defaultTab : "profile"
+  return <ProfileTabs initialTab={isValidTab} />
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-muted-foreground">Загрузка...</p>
+    </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TabReader />
+    </Suspense>
   )
 }
