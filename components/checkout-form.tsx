@@ -91,7 +91,6 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
         price: item.price,
       })),
       total: finalTotal,
-      userId: user?.id || null,
       customer: { name: data.name, phone: data.phone, email: data.email || undefined },
       delivery: {
         city: selectedCity,
