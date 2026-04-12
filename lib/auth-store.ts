@@ -43,49 +43,51 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const supabase = getSupabase()
 
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-
-          if (error) {
-            set({ loading: false, error: error.message === "Invalid login credentials" ? "Неверный email или пароль" : error.message })
-            return false
-          }
-
-          if (!data.user) {
-            set({ loading: false, error: "Ошибка входа" })
-            return false
-          }
-
-          // Получаем дополнительные данные из таблицы users
-          const response = await fetch("/api/auth/login", {
+          // Сначала проверяем пароль через наш API (bcrypt)
+          const apiResponse = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
           })
 
-          const result: AuthResponse = await response.json()
+          const apiResult: AuthResponse = await apiResponse.json()
 
-          if (result.success && result.user) {
-            set({ user: result.user, isAuthenticated: true, loading: false, error: null })
-            return true
-          } else {
-            // Fallback — используем данные из Supabase
-            set({
-              user: {
-                id: data.user.id,
-                name: data.user.user_metadata?.name || "",
-                email: data.user.email || "",
-                phone: data.user.user_metadata?.phone || "",
-                createdAt: data.user.created_at,
-              },
-              isAuthenticated: true,
-              loading: false,
-              error: null,
-            })
-            return true
+          if (!apiResult.success || !apiResult.user) {
+            set({ loading: false, error: apiResult.message || "Неверный email или пароль" })
+            return false
           }
+
+          // Теперь пытаемся войти через Supabase Auth
+          // Если пользователя нет в Supabase — создаём через signUp
+          const { data, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+
+          // Если пользователь не найден в Supabase Auth — регистрируем
+          if (signInError && (signInError.message.includes("Invalid") || signInError.message.includes("not found"))) {
+            await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  name: apiResult.user.name,
+                  phone: apiResult.user.phone,
+                },
+              },
+            })
+            // После регистрации пробуем войти снова
+            await supabase.auth.signInWithPassword({ email, password })
+          }
+
+          // Сохраняем пользователя в Zustand
+          set({
+            user: apiResult.user,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+          })
+          return true
         } catch {
           set({ loading: false, error: "Ошибка соединения с сервером" })
           return false
@@ -103,7 +105,8 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const supabase = getSupabase()
 
-          const { data, error } = await supabase.auth.signUp({
+          // Регистрируем в Supabase Auth
+          const { data, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -114,8 +117,8 @@ export const useAuthStore = create<AuthStore>()(
             },
           })
 
-          if (error) {
-            set({ loading: false, error: error.message })
+          if (signUpError) {
+            set({ loading: false, error: signUpError.message })
             return false
           }
 
@@ -140,22 +143,21 @@ export const useAuthStore = create<AuthStore>()(
           if (result.success && result.user) {
             set({ user: result.user, isAuthenticated: true, loading: false, error: null })
             return true
-          } else {
-            // Fallback
-            set({
-              user: {
-                id: data.user.id,
-                name,
-                email,
-                phone,
-                createdAt: data.user.created_at,
-              },
-              isAuthenticated: true,
-              loading: false,
-              error: null,
-            })
-            return true
           }
+
+          set({
+            user: {
+              id: data.user.id,
+              name,
+              email,
+              phone,
+              createdAt: data.user.created_at,
+            },
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+          })
+          return true
         } catch {
           set({ loading: false, error: "Ошибка соединения с сервером" })
           return false

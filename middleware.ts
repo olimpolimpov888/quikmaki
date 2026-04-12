@@ -24,20 +24,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Обновляем сессию и проверяем авторизацию
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Защищённые маршруты — только для авторизованных
-  const protectedPaths = ['/profile', '/order-history', '/referral', '/favorites']
-  const isProtected = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
-
-  if (isProtected && !user) {
-    // Редирект на главную если не авторизован
-    const redirectUrl = new URL('/', request.url)
-    return NextResponse.redirect(redirectUrl)
-  }
+  // Только обновляем куки Supabase
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
