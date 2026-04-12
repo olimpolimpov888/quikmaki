@@ -50,37 +50,35 @@ export const useAuthStore = create<AuthStore>()(
             body: JSON.stringify({ email, password }),
           })
 
-          const apiResult: AuthResponse = await apiResponse.json()
+          const apiResult: AuthResponse & { skipPasswordCheck?: boolean } = await apiResponse.json()
 
           if (!apiResult.success || !apiResult.user) {
             set({ loading: false, error: apiResult.message || "Неверный email или пароль" })
             return false
           }
 
-          // Теперь пытаемся войти через Supabase Auth
-          // Если пользователя нет в Supabase — создаём через signUp
-          const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-
-          // Если пользователь не найден в Supabase Auth — регистрируем
-          if (signInError && (signInError.message.includes("Invalid") || signInError.message.includes("not found"))) {
-            await supabase.auth.signUp({
+          // Если пароль хранится в Supabase Auth — пробуем войти напрямую
+          if (apiResult.skipPasswordCheck) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
               email,
               password,
-              options: {
-                data: {
-                  name: apiResult.user.name,
-                  phone: apiResult.user.phone,
-                },
-              },
             })
-            // После регистрации пробуем войти снова
-            await supabase.auth.signInWithPassword({ email, password })
+
+            if (signInError) {
+              set({ loading: false, error: "Неверный email или пароль" })
+              return false
+            }
+
+            set({
+              user: apiResult.user,
+              isAuthenticated: true,
+              loading: false,
+              error: null,
+            })
+            return true
           }
 
-          // Сохраняем пользователя в Zustand
+          // Для старых пользователей (с bcrypt хешем) — используем только Zustand
           set({
             user: apiResult.user,
             isAuthenticated: true,

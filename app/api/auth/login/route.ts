@@ -15,6 +15,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Неверный email или пароль" }, { status: 401 })
     }
 
+    // Если hashed_password пустой — значит пароль хранится в Supabase Auth
+    // Просто возвращаем данные пользователя, проверку пароля сделает Supabase
+    if (!user.hashed_password) {
+      return NextResponse.json({
+        success: true,
+        user: { id: user.id, name: user.name, email: user.email, phone: user.phone, createdAt: user.created_at },
+        skipPasswordCheck: true,
+      }, { status: 200 })
+    }
+
     // Проверяем пароль через bcrypt
     const isValid = await verifyPassword(body.password, user.hashed_password)
     if (!isValid) {
