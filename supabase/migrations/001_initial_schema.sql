@@ -214,7 +214,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Применить триггер к таблицам с updated_at
+-- Удаляем старые триггеры если они существуют
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
+
+-- Применяем триггер к таблицам с updated_at
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -248,6 +252,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Триггер для автоматической генерации реферального кода
+DROP TRIGGER IF EXISTS set_user_referral_code ON users;
 CREATE TRIGGER set_user_referral_code
   BEFORE INSERT ON users
   FOR EACH ROW EXECUTE FUNCTION create_user_with_referral_code();
