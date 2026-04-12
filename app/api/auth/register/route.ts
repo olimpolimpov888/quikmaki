@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createUser, findUserByEmailRaw } from "@/lib/db"
+import { createUser, findUserByEmailRaw, applyReferralCode } from "@/lib/db"
 import { hashPassword } from "@/lib/auth-utils"
+import { createClient } from "@/lib/supabase/server"
 import type { RegisterRequest, AuthResponse } from "@/lib/types"
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient()
+
+    // Получаем текущего пользователя из Supabase Auth
+    const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+
     const body: RegisterRequest = await request.json()
     if (!body.name || !body.email || !body.phone || !body.password) {
       return NextResponse.json({ success: false, message: "Все поля обязательны" }, { status: 400 })
@@ -17,6 +23,13 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(body.password)
     const user = await createUser({ name: body.name, email: body.email, phone: body.phone, hashedPassword })
+
+    // Применяем реферальный код если есть
+    const url = new URL(request.url)
+    const referralCode = url.searchParams.get("referral")
+    if (referralCode && user) {
+      await applyReferralCode(user.id, referralCode)
+    }
 
     if (!user) {
       return NextResponse.json({ success: false, message: "Ошибка создания пользователя" }, { status: 500 })

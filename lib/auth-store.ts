@@ -2,7 +2,14 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { createBrowserClient } from "@supabase/ssr"
 import type { AuthResponse } from "@/lib/types"
+
+const getSupabase = () =>
+  createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
 interface User {
   id: string
@@ -19,7 +26,7 @@ interface AuthStore {
   error: string | null
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   clearError: () => void
 }
 
@@ -34,20 +41,50 @@ export const useAuthStore = create<AuthStore>()(
       login: async (email: string, password: string): Promise<boolean> => {
         set({ loading: true, error: null })
         try {
+          const supabase = getSupabase()
+
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+
+          if (error) {
+            set({ loading: false, error: error.message === "Invalid login credentials" ? "Неверный email или пароль" : error.message })
+            return false
+          }
+
+          if (!data.user) {
+            set({ loading: false, error: "Ошибка входа" })
+            return false
+          }
+
+          // Получаем дополнительные данные из таблицы users
           const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
           })
 
-          const data: AuthResponse = await response.json()
+          const result: AuthResponse = await response.json()
 
-          if (data.success && data.user) {
-            set({ user: data.user, isAuthenticated: true, loading: false, error: null })
+          if (result.success && result.user) {
+            set({ user: result.user, isAuthenticated: true, loading: false, error: null })
             return true
           } else {
-            set({ loading: false, error: data.message || "Ошибка входа" })
-            return false
+            // Fallback — используем данные из Supabase
+            set({
+              user: {
+                id: data.user.id,
+                name: data.user.user_metadata?.name || "",
+                email: data.user.email || "",
+                phone: data.user.user_metadata?.phone || "",
+                createdAt: data.user.created_at,
+              },
+              isAuthenticated: true,
+              loading: false,
+              error: null,
+            })
+            return true
           }
         } catch {
           set({ loading: false, error: "Ошибка соединения с сервером" })
@@ -64,6 +101,30 @@ export const useAuthStore = create<AuthStore>()(
       ): Promise<boolean> => {
         set({ loading: true, error: null })
         try {
+          const supabase = getSupabase()
+
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                name,
+                phone,
+              },
+            },
+          })
+
+          if (error) {
+            set({ loading: false, error: error.message })
+            return false
+          }
+
+          if (!data.user) {
+            set({ loading: false, error: "Ошибка регистрации" })
+            return false
+          }
+
+          // Создаём запись в таблице users через API
           const url = referralCode
             ? `/api/auth/register?referral=${encodeURIComponent(referralCode)}`
             : "/api/auth/register"
@@ -74,14 +135,26 @@ export const useAuthStore = create<AuthStore>()(
             body: JSON.stringify({ name, email, phone, password }),
           })
 
-          const data: AuthResponse = await response.json()
+          const result: AuthResponse = await response.json()
 
-          if (data.success && data.user) {
-            set({ user: data.user, isAuthenticated: true, loading: false, error: null })
+          if (result.success && result.user) {
+            set({ user: result.user, isAuthenticated: true, loading: false, error: null })
             return true
           } else {
-            set({ loading: false, error: data.message || "Ошибка регистрации" })
-            return false
+            // Fallback
+            set({
+              user: {
+                id: data.user.id,
+                name,
+                email,
+                phone,
+                createdAt: data.user.created_at,
+              },
+              isAuthenticated: true,
+              loading: false,
+              error: null,
+            })
+            return true
           }
         } catch {
           set({ loading: false, error: "Ошибка соединения с сервером" })
@@ -89,7 +162,16 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => set({ user: null, isAuthenticated: false, error: null }),
+      logout: async () => {
+        try {
+          const supabase = getSupabase()
+          await supabase.auth.signOut()
+        } catch {
+          // ignore
+        }
+        set({ user: null, isAuthenticated: false, error: null })
+      },
+
       clearError: () => set({ error: null }),
     }),
     {
