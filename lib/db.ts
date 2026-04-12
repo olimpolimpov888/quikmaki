@@ -1,5 +1,6 @@
 import { createClient } from './supabase/server'
 import { generateReferralCode } from './auth-utils'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 // ========================
 // Хелперы для маппинга (snake_case -> camelCase)
@@ -192,8 +193,14 @@ export async function createOrder(data: any) {
 
   if (error) throw error
 
-  // 2. Создаем товары заказа
+  // 2. Создаем товары заказа (используем admin client чтобы обойти RLS)
   if (data.items && data.items.length > 0) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
+
     const itemsToInsert = data.items.map((item: any) => ({
       order_id: order.id,
       product_id: item.id,
@@ -205,7 +212,11 @@ export async function createOrder(data: any) {
       description: item.description,
     }))
 
-    await supabase.from('order_items').insert(itemsToInsert)
+    const { error: itemsError } = await adminSupabase.from('order_items').insert(itemsToInsert)
+    if (itemsError) {
+      console.error('Error inserting order items:', itemsError)
+      // Не выбрасываем ошибку, чтобы заказ всё равно создался
+    }
   }
 
   // 3. Обновляем статистику пользователя
