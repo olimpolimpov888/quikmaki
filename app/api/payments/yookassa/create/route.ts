@@ -11,6 +11,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { orderId, amount, description, customerEmail, customerPhone, items } = body
 
+    // === РЕЖИМ СИМУЛЯЦИИ (Mock Mode) ===
+    if (process.env.NEXT_PUBLIC_MOCK_PAYMENT === 'true') {
+      const url = new URL(request.url)
+      const baseUrl = `${url.protocol}//${url.host}`
+
+      return NextResponse.json({
+        success: true,
+        paymentId: 'mock-payment-id',
+        confirmationUrl: `${baseUrl}/mock-payment?orderId=${orderId}&amount=${amount}`,
+        status: 'pending',
+      })
+    }
+    // ==================================
+
     if (!orderId || !amount || !description) {
       return NextResponse.json(
         { success: false, message: 'Неверные параметры' },
