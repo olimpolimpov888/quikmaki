@@ -97,7 +97,7 @@ export function SupportChat() {
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors",
+          "fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors sm:bottom-8",
           isOpen
             ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
             : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -114,7 +114,7 @@ export function SupportChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-36 right-4 z-50 w-80 sm:w-96"
+            className="fixed bottom-36 right-4 left-4 z-50 w-auto sm:w-80 sm:left-auto sm:w-96 sm:bottom-36"
           >
             <Card className="border-border shadow-2xl overflow-hidden">
               {/* Header */}
@@ -141,7 +141,7 @@ export function SupportChat() {
 
               {/* Messages */}
               <CardContent className="p-0">
-                <div className="h-72 overflow-y-auto p-4 space-y-3 bg-muted/30">
+                <div className="h-[60vh] sm:h-72 overflow-y-auto p-4 space-y-3 bg-muted/30 max-h-[500px] sm:max-h-none">
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
