@@ -90,6 +90,14 @@ export function Footer() {
                   Конфиденциальность
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/oferta"
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
+                >
+                  Оферта
+                </Link>
+              </li>
             </ul>
 
             {/* Social */}
@@ -109,9 +117,9 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Payment Methods & Copyright */}
+        {/* Payment Methods, INN & Copyright */}
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <span className="text-sm text-muted-foreground">Принимаем к оплате:</span>
             <div className="flex items-center gap-2">
               <div className="w-10 h-6 bg-secondary rounded flex items-center justify-center text-xs font-semibold text-muted-foreground">
@@ -125,9 +133,10 @@ export function Footer() {
               </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; 2026 QuikMaki. Все права защищены.
-          </p>
+          <div className="text-sm text-muted-foreground text-center">
+            <p>ИНН 661107552508 | Самозанятый</p>
+            <p>&copy; 2026 QuikMaki. Все права защищены.</p>
+          </div>
         </div>
       </div>
     </footer>
