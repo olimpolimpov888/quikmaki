@@ -127,8 +127,11 @@ export function ProfileSettings() {
     try {
       const supabase = getSupabase()
 
-      // Проверяем текущий пароль через Supabase Auth
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Выходим из сессии чтобы Supabase потребовал проверку пароля
+      await supabase.auth.signOut()
+
+      // Пытаемся войти с текущим паролем — если неверный, будет ошибка
+      const { error: signInError, data } = await supabase.auth.signInWithPassword({
         email: user?.email || "",
         password: currentPassword,
       })
@@ -139,7 +142,7 @@ export function ProfileSettings() {
         return
       }
 
-      // Обновляем пароль через Supabase Auth
+      // Обновляем пароль
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       })
@@ -150,6 +153,19 @@ export function ProfileSettings() {
         setCurrentPassword("")
         setNewPassword("")
         toast.success("Пароль успешно изменён!")
+        // Обновляем Zustand store
+        if (data?.user) {
+          useAuthStore.setState({
+            user: {
+              id: data.user.id,
+              name: data.user.user_metadata?.name || user?.name || "",
+              email: data.user.email || user?.email || "",
+              phone: data.user.user_metadata?.phone || user?.phone || "",
+              createdAt: data.user.created_at,
+            },
+            isAuthenticated: true,
+          })
+        }
       }
     } catch {
       toast.error("Ошибка соединения с сервером")
