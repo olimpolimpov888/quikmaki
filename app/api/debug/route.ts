@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("id, order_number, user_id")
       .order("created_at", { ascending: false })
-      .limit(3)
+      .limit(5)
 
     // Все order_items
     const { data: items, error: itemsError } = await adminSupabase
@@ -28,9 +28,19 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("id, order_number, order_items(*)")
       .order("created_at", { ascending: false })
-      .limit(3)
+      .limit(5)
+
+    // Проверка структуры таблицы order_items
+    const { data: tableInfo, error: tableError } = await adminSupabase
+      .from("order_items")
+      .select("*")
+      .limit(1)
 
     return NextResponse.json({
+      env: {
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        serviceKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) + '...',
+      },
       ordersCount: orders?.length || 0,
       orders,
       ordersError,
@@ -39,6 +49,8 @@ export async function GET(request: NextRequest) {
       itemsError,
       joined,
       joinError,
+      tableInfo,
+      tableError,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
