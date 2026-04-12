@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/lib/auth-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,17 +14,33 @@ import {
   Mail,
   Phone,
   Bell,
-  Moon,
   Eye,
   EyeOff,
   LogOut,
   Trash2,
   Save,
+  AlertTriangle,
 } from "lucide-react"
 import { toast } from "sonner"
+import { createBrowserClient } from "@supabase/ssr"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+const getSupabase = () =>
+  createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
 export function ProfileSettings() {
   const { user, logout } = useAuthStore()
+  const router = useRouter()
   const [name, setName] = useState(user?.name || "")
   const [email, setEmail] = useState(user?.email || "")
   const [phone, setPhone] = useState(user?.phone || "")
@@ -38,6 +55,11 @@ export function ProfileSettings() {
   const [notifyPush, setNotifyPush] = useState(true)
   const [notifyPromos, setNotifyPromos] = useState(true)
 
+  // Delete account dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState("")
+  const [deleting, setDeleting] = useState(false)
+
   const handleSaveProfile = async () => {
     if (!name || !phone) {
       toast.error("Имя и телефон обязательны")
@@ -46,6 +68,21 @@ export function ProfileSettings() {
 
     setSaving(true)
     try {
+      const supabase = getSupabase()
+
+      // Обновляем данные в Supabase Auth
+      const { error: authError } = await supabase.auth.updateUser({
+        email: email || undefined,
+        data: { name, phone },
+      })
+
+      if (authError) {
+        toast.error(authError.message)
+        setSaving(false)
+        return
+      }
+
+      // Обновляем данные в таблице users
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -56,6 +93,10 @@ export function ProfileSettings() {
 
       if (result.success) {
         toast.success("Профиль сохранён!")
+        // Обновляем Zustand store
+        useAuthStore.setState({
+          user: { ...user!, name, email, phone },
+        })
       } else {
         toast.error(result.message || "Ошибка сохранения")
       }
@@ -78,20 +119,35 @@ export function ProfileSettings() {
 
     setSaving(true)
     try {
-      const response = await fetch("/api/profile/password", {
-        method: "PUT",
+      const supabase = getSupabase()
+
+      // Supabase требует текущий пароль для обновления
+      // Сначала проверяем текущий пароль через наш API
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
       })
 
-      const result = await response.json()
+      const loginResult = await loginResponse.json()
 
-      if (result.success) {
+      if (!loginResult.success) {
+        toast.error("Неверный текущий пароль")
+        setSaving(false)
+        return
+      }
+
+      // Обновляем пароль через Supabase Auth
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) {
+        toast.error(error.message || "Ошибка смены пароля")
+      } else {
         setCurrentPassword("")
         setNewPassword("")
         toast.success("Пароль изменён!")
-      } else {
-        toast.error(result.message || "Ошибка смены пароля")
       }
     } catch {
       toast.error("Ошибка соединения с сервером")
@@ -100,11 +156,33 @@ export function ProfileSettings() {
     }
   }
 
-  const handleDeleteAccount = () => {
-    if (confirm("Вы уверены? Это действие необратимо!")) {
-      // TODO: Send delete request
-      logout()
-      localStorage.clear()
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "УДАЛИТЬ") {
+      toast.error("Введите УДАЛИТЬ для подтверждения")
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const response = await fetch("/api/profile/delete", {
+        method: "DELETE",
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success("Аккаунт удалён")
+        logout()
+        router.push("/")
+      } else {
+        toast.error(result.message || "Ошибка удаления")
+      }
+    } catch {
+      toast.error("Ошибка соединения с сервером")
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+      setDeleteConfirm("")
     }
   }
 
@@ -130,6 +208,7 @@ export function ProfileSettings() {
                   className="pl-10"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={saving}
                 />
               </div>
             </div>
@@ -145,6 +224,7 @@ export function ProfileSettings() {
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={saving}
                 />
               </div>
             </div>
@@ -160,6 +240,7 @@ export function ProfileSettings() {
                   className="pl-10"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  disabled={saving}
                 />
               </div>
             </div>
@@ -191,11 +272,13 @@ export function ProfileSettings() {
                   className="pr-10"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={saving}
                 />
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={saving}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -211,10 +294,11 @@ export function ProfileSettings() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 minLength={6}
+                disabled={saving}
               />
             </div>
 
-            <Button onClick={handleChangePassword} disabled={saving}>
+            <Button onClick={handleChangePassword} disabled={saving || !currentPassword || !newPassword}>
               {saving ? "Изменение..." : "Изменить пароль"}
             </Button>
           </div>
@@ -296,13 +380,65 @@ export function ProfileSettings() {
                 Все данные будут удалены навсегда
               </p>
             </div>
-            <Button variant="destructive" onClick={handleDeleteAccount}>
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
               <Trash2 className="h-4 w-4 mr-2" />
               Удалить
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+            <DialogTitle className="text-center text-destructive">Удалить аккаунт?</DialogTitle>
+            <DialogDescription className="text-center">
+              Это действие <strong>необратимо</strong>. Все ваши данные, заказы и бонусы будут удалены навсегда.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Для подтверждения введите <span className="text-destructive font-bold">УДАЛИТЬ</span>
+              </Label>
+              <Input
+                id="delete-confirm"
+                type="text"
+                placeholder="УДАЛИТЬ"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                className="text-center font-mono"
+                disabled={deleting}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setDeleteConfirm("")
+              }}
+              disabled={deleting}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirm !== "УДАЛИТЬ" || deleting}
+            >
+              {deleting ? "Удаление..." : "Удалить аккаунт"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
