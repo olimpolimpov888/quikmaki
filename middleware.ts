@@ -33,11 +33,18 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
       return NextResponse.redirect(loginUrl)
     }
-    // TODO: Проверка роли администратора
-    // const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single()
-    // if (userData?.role !== 'admin') {
-    //   return NextResponse.redirect(new URL('/', request.url))
-    // }
+
+    // Проверка роли администратора
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (userData?.role !== 'admin') {
+      // Не админ — редирект на главную
+      return NextResponse.redirect(new URL('/', request.url))
+    }
   }
 
   return supabaseResponse
