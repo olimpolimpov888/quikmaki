@@ -15,6 +15,7 @@ function mapUser(user: any) {
     email: user.email,
     phone: user.phone,
     avatarUrl: user.avatar_url,
+    role: user.role || 'customer',
     referralCode: user.referral_code,
     loyaltyPoints: user.loyalty_points || 0,
     totalSpent: user.total_spent || 0,

@@ -37,11 +37,31 @@ export function Header() {
   const [cityDialogOpen, setCityDialogOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [cities, setCities] = useState<string[]>(["Екатеринбург", "Москва", "Тюмень"])
+  const [isAdmin, setIsAdmin] = useState(false)
   const { selectedCity, setCity, getTotalItems } = useCartStore()
   const { user, isAuthenticated } = useAuthStore()
   const { locale, setLocale, t } = useI18n()
   const { isOpen, loading } = useRestaurantStatus()
   const cartItemsCount = getTotalItems()
+
+  // Проверка роли администратора
+  useEffect(() => {
+    if (!user?.id) {
+      setIsAdmin(false)
+      return
+    }
+    fetch(`/api/user/stats?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        // Если у пользователя есть поле role и оно равно 'admin'
+        if (data.data?.role === 'admin') {
+          setIsAdmin(true)
+        } else {
+          setIsAdmin(false)
+        }
+      })
+      .catch(() => setIsAdmin(false))
+  }, [user?.id])
 
   // Загружаем города из БД
   useEffect(() => {
@@ -188,6 +208,23 @@ export function Header() {
             >
               <User className="h-4 w-4" />
               <span>Войти</span>
+            </Button>
+          )}
+
+          {/* Admin Panel Link (only for admins) */}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => router.push("/admin")}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+              <span className="hidden sm:inline">Админка</span>
             </Button>
           )}
 
