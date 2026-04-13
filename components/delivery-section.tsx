@@ -2,15 +2,6 @@
 
 import { Clock, CreditCard, Percent, MapPin } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { deliveryZones } from "@/lib/data"
 
 export function DeliverySection() {
   return (
@@ -21,7 +12,7 @@ export function DeliverySection() {
         </h2>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-card border-border">
             <CardContent className="p-6 flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -70,33 +61,6 @@ export function DeliverySection() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Delivery Zones Table */}
-        <Card className="bg-card border-border max-w-2xl mx-auto">
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-foreground mb-4 text-center">
-              Зоны доставки
-            </h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Район</TableHead>
-                  <TableHead className="text-right">Мин. заказ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveryZones.map((zone) => (
-                  <TableRow key={zone.zone}>
-                    <TableCell className="font-medium">{zone.zone}</TableCell>
-                    <TableCell className="text-right">
-                      {zone.minOrder.toLocaleString("ru-RU")} ₽
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </div>
     </section>
   )
