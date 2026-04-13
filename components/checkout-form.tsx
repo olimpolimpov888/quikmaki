@@ -213,29 +213,42 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       const result: CreateOrderResponse = await response.json()
 
       if (result.success && result.order) {
-        clearCart()
-
-        // Если оплата картой — перенаправляем на оплату (Mock или реальную)
+        // Если оплата картой
         if (data.paymentMethod === "card") {
           const payUrl = result.paymentUrl || (result as any).confirmationUrl
+          
+          // Отладка в консоли
+          console.log("Mock Mode Check:", { 
+            paymentMethod: data.paymentMethod, 
+            hasPaymentUrl: !!result.paymentUrl, 
+            hasConfirmationUrl: !!(result as any).confirmationUrl,
+            envMock: process.env.NEXT_PUBLIC_MOCK_PAYMENT 
+          })
+
           if (payUrl) {
+            // Очищаем корзину ТОЛЬКО перед успешным редиректом
+            clearCart()
             toast.success("Заказ создан! Перенаправляем на оплату...")
             window.location.href = payUrl
             return
           } else {
-            toast.error("Ошибка создания ссылки на оплату")
+            // Если ссылки нет — показываем ошибку и НЕ очищаем корзину
+            toast.error("Ошибка: Сервер не вернул ссылку на оплату. Проверь настройки .env")
+            console.error("Missing payment URL in response:", result)
             setLoading(false)
             return
           }
         }
 
-        // Для наличных — показываем успех
+        // Для наличных — показываем успех и очищаем корзину
+        clearCart()
         toast.success("Заказ #" + result.order.orderNumber + " оформлен!")
         onSuccess(result.order.orderNumber)
       } else {
         toast.error(result.message || "Ошибка оформления заказа")
       }
-    } catch {
+    } catch (error) {
+      console.error("Checkout error:", error)
       toast.error("Ошибка соединения с сервером")
     }
 
