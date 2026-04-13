@@ -58,15 +58,16 @@ export function ProductCard({ product }: ProductCardProps) {
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
     >
       <Card
-        className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer h-full"
+        className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer h-full rounded-xl"
         onClick={handleViewDetails}
       >
-        <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl">
+        <div className="relative aspect-[4/3] overflow-hidden">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover rounded-t-xl transition-transform duration-300 group-hover:scale-105"
+            style={{ borderTopLeftRadius: '0.75rem', borderTopRightRadius: '0.75rem' }}
             crossOrigin="anonymous"
           />
 
