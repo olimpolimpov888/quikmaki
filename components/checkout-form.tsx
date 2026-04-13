@@ -215,11 +215,18 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
       if (result.success && result.order) {
         clearCart()
 
-        // Если оплата картой и есть ссылка на оплату — перенаправляем
-        if (data.paymentMethod === "card" && result.paymentUrl) {
-          toast.success("Заказ #" + result.order.orderNumber + " создан! Перенаправляем на оплату...")
-          window.location.href = result.paymentUrl
-          return
+        // Если оплата картой — перенаправляем на оплату (Mock или реальную)
+        if (data.paymentMethod === "card") {
+          const payUrl = result.paymentUrl || (result as any).confirmationUrl
+          if (payUrl) {
+            toast.success("Заказ создан! Перенаправляем на оплату...")
+            window.location.href = payUrl
+            return
+          } else {
+            toast.error("Ошибка создания ссылки на оплату")
+            setLoading(false)
+            return
+          }
         }
 
         // Для наличных — показываем успех
