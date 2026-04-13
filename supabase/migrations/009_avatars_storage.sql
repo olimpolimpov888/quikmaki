@@ -4,8 +4,9 @@
 
 -- Создаём bucket для аватаров (если не существует)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('avatars', 'avatars', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/webp'])
-ON CONFLICT (id) DO NOTHING;
+VALUES ('avatars', 'avatars', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'])
+ON CONFLICT (id) DO UPDATE SET
+  allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
 -- Политика: пользователи могут загружать только свои аватары
 CREATE POLICY "Users can upload their own avatar"

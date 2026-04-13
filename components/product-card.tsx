@@ -61,7 +61,7 @@ export function ProductCard({ product }: ProductCardProps) {
         className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer h-full"
         onClick={handleViewDetails}
       >
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl">
           <Image
             src={product.image}
             alt={product.name}
