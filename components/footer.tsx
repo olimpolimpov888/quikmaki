@@ -35,11 +35,11 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="tel:+79505623931"
+                  href="tel:+79508634041"
                   className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   <Phone className="h-4 w-4" />
-                  +7 (950) 562-39-31
+                  +7 (950) 863-40-41
                 </a>
               </li>
               <li>
@@ -134,7 +134,7 @@ export function Footer() {
             </div>
           </div>
           <div className="text-sm text-muted-foreground text-center">
-            <p>Теплоухов Арсений Павлович | ИНН 661107552508 | Самозанятый</p>
+            <p>Петров Кирилл | ИНН 661107552508 | Самозанятый</p>
             <p>&copy; 2026 QuikMaki. Все права защищены.</p>
           </div>
         </div>

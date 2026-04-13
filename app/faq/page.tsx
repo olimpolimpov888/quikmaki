@@ -52,7 +52,7 @@ const faqData = [
   },
   {
     question: "Что делать, если заказ некачественный?",
-    answer: "Свяжитесь с нами незамедлительно по телефону +7 (950) 562-39-31. Мы решим проблему — заменим блюдо или вернём деньги."
+    answer: "Свяжитесь с нами незамедлительно по телефону +7 (950) 863-40-41. Мы решим проблему — заменим блюдо или вернём деньги."
   },
   {
     question: "Есть ли у вас вегетарианские блюда?",
@@ -100,7 +100,7 @@ export default function FAQPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href="tel:+79505623931"
+              href="tel:+79508634041"
               className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               📞 +7 (950) 562-3931

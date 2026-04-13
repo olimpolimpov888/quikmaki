@@ -187,7 +187,7 @@ export function TrackOrderContent() {
             </Badge>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-4 w-4" />
-              <span className="text-sm">+7 (950) 562-39-31</span>
+              <span className="text-sm">+7 (950) 863-40-41</span>
             </div>
           </div>
 

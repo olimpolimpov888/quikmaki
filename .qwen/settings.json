@@ -24,7 +24,8 @@
       "Bash(rm *)",
       "Bash(del *)",
       "Bash(ren *)",
-      "Bash(rmdir *)"
+      "Bash(rmdir *)",
+      "Bash(powershell *)"
     ]
   },
   "$version": 3

@@ -18,7 +18,7 @@ const jsonLd = {
   "name": "QuikMaki",
   "description": "Доставка свежих суши, роллов и пиццы. Японская и итальянская кухня с доставкой на дом.",
   "url": "https://quikmaki.ru",
-  "telephone": "+79505623931",
+  "telephone": "+79508634041",
   "email": "info@quikmaki.ru",
   "servesCuisine": ["Japanese", "Italian"],
   "priceRange": "₽₽",

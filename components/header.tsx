@@ -175,11 +175,11 @@ export function Header() {
 
           {/* Phone — hidden on smaller screens to save space */}
           <a
-            href="tel:+79505623931"
+            href="tel:+79508634041"
             className="hidden xl:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
           >
             <Phone className="h-4 w-4" />
-            <span>+7 (950) 562-39-31</span>
+            <span>+7 (950) 863-40-41</span>
           </a>
 
           {/* Free Delivery Badge */}
@@ -315,11 +315,11 @@ export function Header() {
                 </Dialog>
 
                 <a
-                  href="tel:+79505623931"
+                  href="tel:+79508634041"
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <Phone className="h-4 w-4" />
-                  +7 (950) 562-39-31
+                  +7 (950) 863-40-41
                 </a>
 
                 <Badge variant="secondary" className="w-fit bg-primary/10 text-primary border-primary/20">
