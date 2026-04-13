@@ -89,7 +89,7 @@ function MockPaymentContent() {
         <div className="p-6 space-y-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              {(parseInt(amount) / 100).toFixed(2)} ₽
+              {parseInt(amount).toLocaleString("ru-RU")} ₽
             </h1>
             <p className="text-sm text-gray-500 mt-1">Заказ #{orderId?.substring(0, 8)}...</p>
             <p className="text-xs text-gray-400 mt-1">Интернет-магазин QuikMaki</p>
@@ -145,7 +145,7 @@ function MockPaymentContent() {
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Обработка...
               </>
             ) : (
-              `Оплатить ${(parseInt(amount) / 100).toFixed(2)} ₽`
+              `Оплатить ${parseInt(amount).toLocaleString("ru-RU")} ₽`
             )}
           </Button>
 
