@@ -489,7 +489,14 @@ export async function getAllDeliveryCities() {
     .select('*')
     .eq('is_active', true)
     .order('name')
-  return data || []
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    deliveryFee: c.delivery_fee,
+    minOrderAmount: c.min_order_amount,
+    isActive: c.is_active,
+    createdAt: c.created_at,
+  }))
 }
 
 export async function getDeliveryCity(name: string) {
