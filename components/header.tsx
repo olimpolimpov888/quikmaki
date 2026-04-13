@@ -185,7 +185,7 @@ export function Header() {
           {/* Free Delivery Badge */}
           <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
             <Truck className="h-3 w-3 mr-1" />
-            Бесплатная доставка
+            Бесплатная доставка от 800 ₽
           </Badge>
 
           {/* Account Button */}

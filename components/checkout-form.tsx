@@ -51,8 +51,11 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
   // Delivery cities
   const [cities, setCities] = useState<DeliveryCity[]>([])
   const [selectedDeliveryCity, setSelectedDeliveryCity] = useState<DeliveryCity | null>(null)
-  const deliveryFee = selectedDeliveryCity?.deliveryFee || 0
-  const minOrderAmount = selectedDeliveryCity?.minOrderAmount || 0
+  const baseDeliveryFee = selectedDeliveryCity?.deliveryFee || 0
+  const freeDeliveryFrom = selectedDeliveryCity?.minOrderAmount || 0
+
+  // Если сумма заказа >= порога — доставка бесплатная
+  const deliveryFee = total >= freeDeliveryFrom && freeDeliveryFrom > 0 ? 0 : baseDeliveryFee
 
   // Restaurant status
   const { isOpen: restaurantOpen, message: restaurantMessage, loading: statusLoading } = useRestaurantStatus()
@@ -165,12 +168,6 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
   }
 
   const onSubmit = async (data: CheckoutFormData) => {
-    // Проверка минимальной суммы заказа
-    if (minOrderAmount > 0 && total < minOrderAmount) {
-      toast.error(`Минимальная сумма заказа для ${selectedDeliveryCity?.name}: ${minOrderAmount} ₽`)
-      return
-    }
-
     setLoading(true)
 
     const totalDiscount = loyaltyDiscount + promoDiscount
@@ -343,7 +340,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
               <SelectContent>
                 {cities.map((city) => (
                   <SelectItem key={city.id} value={city.name}>
-                    {city.name} — доставка {city.deliveryFee} ₽ (от {city.minOrderAmount} ₽)
+                    {city.name} — доставка {city.deliveryFee} ₽ (бесплатно от {city.minOrderAmount} ₽)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -351,12 +348,20 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
           </div>
         )}
 
-        {/* Min order amount warning */}
-        {minOrderAmount > 0 && total < minOrderAmount && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm">
-            <Truck className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-            <span className="text-yellow-600 dark:text-yellow-400">
-              Минимальная сумма заказа: {minOrderAmount} ₽ (не хватает {(minOrderAmount - total).toLocaleString("ru-RU")} ₽)
+        {/* Free delivery progress */}
+        {freeDeliveryFrom > 0 && total < freeDeliveryFrom && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm">
+            <Truck className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-blue-600 dark:text-blue-400">
+              До бесплатной доставки: {(freeDeliveryFrom - total).toLocaleString("ru-RU")} ₽
+            </span>
+          </div>
+        )}
+        {freeDeliveryFrom > 0 && total >= freeDeliveryFrom && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm">
+            <Truck className="h-4 w-4 text-green-500 flex-shrink-0" />
+            <span className="text-green-600 dark:text-green-400">
+              ✓ Бесплатная доставка!
             </span>
           </div>
         )}
@@ -556,7 +561,7 @@ export function CheckoutForm({ onSuccess, onCancel }: CheckoutFormProps) {
           type="submit"
           className="w-full"
           size="lg"
-          disabled={loading || (minOrderAmount > 0 && total < minOrderAmount) || restaurantOpen === false}
+          disabled={loading || restaurantOpen === false}
         >
           {loading ? "Оформление..." : restaurantOpen === false ? "Ресторан закрыт" : "Оформить заказ"}
         </Button>
