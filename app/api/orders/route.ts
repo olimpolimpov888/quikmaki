@@ -55,71 +55,79 @@ export async function POST(request: NextRequest) {
 
     if (body.promoCode && promoDiscount > 0) await incrementPromoCodeUsage(body.promoCode)
 
-    // Если оплата картой — создаём платёж ЮKassa
+    // Если оплата картой — создаём платёж ЮKassa или Mock
     let paymentUrl = null
     let paymentId = null
 
     if (body.payment === 'card' && order) {
-      try {
-        // Базовый URL для returnUrl (берём из запроса)
-        const url = new URL(request.url)
-        const baseUrl = `${url.protocol}//${url.host}`
-        const returnUrl = `${baseUrl}/track-order?order=${order.orderNumber}`
+      // Базовый URL для returnUrl
+      const url = new URL(request.url)
+      const baseUrl = `${url.protocol}//${url.host}`
+      
+      // === РЕЖИМ СИМУЛЯЦИИ (MOCK) ===
+      if (process.env.NEXT_PUBLIC_MOCK_PAYMENT === 'true') {
+        paymentUrl = `${baseUrl}/mock-payment?orderId=${order.id}&amount=${body.total}`
+        paymentId = 'mock-payment-id'
+        
+        // Сразу ставим статус "ожидает оплаты"
+        await updateOrderStatus(order.id, 'awaiting_payment')
+      } else {
+        // === РЕАЛЬНАЯ ЮKASSA ===
+        try {
+          const returnUrl = `${baseUrl}/track-order?order=${order.orderNumber}`
 
-        const yookassaPayment = await createPayment({
-          amount: {
-            value: formatAmount(body.total),
-            currency: 'RUB',
-          },
-          confirmation: {
-            type: 'redirect',
-            return_url: returnUrl,
-          },
-          capture: true,
-          description: `Оплата заказа ${order.orderNumber}`,
-          metadata: {
-            order_id: order.id,
-            user_id: userId || 'anonymous',
-          },
-          receipt: {
-            customer: {
-              email: body.customer.email || undefined,
-              phone: body.customer.phone || undefined,
+          const yookassaPayment = await createPayment({
+            amount: {
+              value: formatAmount(body.total),
+              currency: 'RUB',
             },
-            items: body.items.map((item) => ({
-              description: item.name,
-              quantity: String(item.quantity),
-              amount: {
-                value: formatAmount(item.price * item.quantity),
-                currency: 'RUB',
+            confirmation: {
+              type: 'redirect',
+              return_url: returnUrl,
+            },
+            capture: true,
+            description: `Оплата заказа ${order.orderNumber}`,
+            metadata: {
+              order_id: order.id,
+              user_id: userId || 'anonymous',
+            },
+            receipt: {
+              customer: {
+                email: body.customer.email || undefined,
+                phone: body.customer.phone || undefined,
               },
-              vat_code: 2,
-            })),
-          },
-        })
-
-        if (yookassaPayment?.confirmation?.confirmation_url) {
-          paymentUrl = yookassaPayment.confirmation.confirmation_url
-          paymentId = yookassaPayment.id
-
-          // Сохраняем информацию о платеже в БД
-          await createYooKassaPayment({
-            orderId: order.id,
-            yookassaPaymentId: yookassaPayment.id,
-            amount: body.total,
-            status: yookassaPayment.status,
-            paymentMethod: yookassaPayment.payment_method?.type,
-            confirmationUrl: yookassaPayment.confirmation.confirmation_url,
-            expiresAt: yookassaPayment.expires_at,
-            metadata: { order_id: order.id },
+              items: body.items.map((item) => ({
+                description: item.name,
+                quantity: String(item.quantity),
+                amount: {
+                  value: formatAmount(item.price * item.quantity),
+                  currency: 'RUB',
+                },
+                vat_code: 2,
+              })),
+            },
           })
 
-          // Меняем статус заказа на "ожидает оплаты"
-          await updateOrderStatus(order.id, 'awaiting_payment')
+          if (yookassaPayment?.confirmation?.confirmation_url) {
+            paymentUrl = yookassaPayment.confirmation.confirmation_url
+            paymentId = yookassaPayment.id
+
+            await createYooKassaPayment({
+              orderId: order.id,
+              yookassaPaymentId: yookassaPayment.id,
+              amount: body.total,
+              status: yookassaPayment.status,
+              paymentMethod: yookassaPayment.payment_method?.type,
+              confirmationUrl: yookassaPayment.confirmation.confirmation_url,
+              expiresAt: yookassaPayment.expires_at,
+              metadata: { order_id: order.id },
+            })
+
+            await updateOrderStatus(order.id, 'awaiting_payment')
+          }
+        } catch (paymentError: any) {
+          console.error('Ошибка создания платежа ЮKassa:', paymentError)
         }
-      } catch (paymentError: any) {
-        console.error('Ошибка создания платежа ЮKassa:', paymentError)
-        // Заказ всё равно создан, просто возвращаем без paymentUrl
       }
     }
 
