@@ -17,8 +17,9 @@ export default function AdminDashboardPage() {
     delivering: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0)
 
-  useEffect(() => {
+  const fetchStats = () => {
     fetch('/api/admin/stats')
       .then(res => res.json())
       .then(data => {
@@ -28,7 +29,15 @@ export default function AdminDashboardPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => {
+    fetchStats()
+  }, [statsRefreshKey])
+
+  const refreshStats = () => {
+    setStatsRefreshKey(prev => prev + 1)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,11 +121,11 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Recent Orders */}
-            <AdminOrders />
+            <AdminOrders onStatusChange={refreshStats} />
           </div>
         )}
 
-        {activeTab === "orders" && <AdminOrders />}
+        {activeTab === "orders" && <AdminOrders onStatusChange={refreshStats} />}
         {activeTab === "products" && <AdminProducts />}
       </main>
     </div>
