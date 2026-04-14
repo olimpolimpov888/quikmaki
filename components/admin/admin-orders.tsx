@@ -54,11 +54,7 @@ const statusColors: Record<string, string> = {
   payment_cancelled: "bg-gray-500",
 }
 
-interface AdminOrdersProps {
-  onStatusChange?: () => void
-}
-
-export function AdminOrders({ onStatusChange }: AdminOrdersProps) {
+export function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
@@ -90,8 +86,6 @@ export function AdminOrders({ onStatusChange }: AdminOrdersProps) {
       })
       if (res.ok) {
         fetchOrders()
-        // Обновляем статистику
-        onStatusChange?.()
       }
     } catch (err) {
       console.error(err)
