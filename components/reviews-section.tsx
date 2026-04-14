@@ -26,34 +26,6 @@ interface ReviewsSectionProps {
   productId: string
 }
 
-// Demo reviews
-const demoReviews: Review[] = [
-  {
-    id: "r1",
-    userId: "u1",
-    userName: "Анна",
-    rating: 5,
-    comment: "Невероятно вкусные роллы! Лосось свежий, сыр нежный. Обязательно закажу ещё!",
-    createdAt: "2026-04-08T15:30:00Z",
-  },
-  {
-    id: "r2",
-    userId: "u2",
-    userName: "Дмитрий",
-    rating: 4,
-    comment: "Хорошие роллы, быстрая доставка. Немного мало начинки, но в целом вкусно.",
-    createdAt: "2026-04-07T12:00:00Z",
-  },
-  {
-    id: "r3",
-    userId: "u3",
-    userName: "Елена",
-    rating: 5,
-    comment: "Лучшие роллы в городе! Заказываю уже третий раз, всегда на высоте.",
-    createdAt: "2026-04-05T19:00:00Z",
-  },
-]
-
 export function ReviewsSection({ productId }: ReviewsSectionProps) {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,15 +54,15 @@ export function ReviewsSection({ productId }: ReviewsSectionProps) {
         const data = await response.json()
 
         if (data.success) {
-          setReviews(data.data.reviews.length > 0 ? data.data.reviews : demoReviews)
-          setAverageRating(data.data.rating.average || 4.7)
+          setReviews(data.data.reviews || [])
+          setAverageRating(data.data.rating?.average || 0)
         } else {
-          setReviews(demoReviews)
-          setAverageRating(4.7)
+          setReviews([])
+          setAverageRating(0)
         }
       } catch {
-        setReviews(demoReviews)
-        setAverageRating(4.7)
+        setReviews([])
+        setAverageRating(0)
       } finally {
         setLoading(false)
       }
@@ -212,39 +184,47 @@ export function ReviewsSection({ productId }: ReviewsSectionProps) {
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {reviews.map((review) => (
-          <Card key={review.id} className="bg-card border-border">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    {review.userName.charAt(0)}
+        {reviews.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="text-lg font-medium">Отзывов пока нет</p>
+            <p className="text-sm">Будьте первым — напишите отзыв об этом товаре!</p>
+          </div>
+        ) : (
+          reviews.map((review) => (
+            <Card key={review.id} className="bg-card border-border">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                      {review.userName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{review.userName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(review.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground">{review.userName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(review.createdAt)}
-                    </p>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={cn(
+                          "h-4 w-4",
+                          star <= review.rating
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-muted-foreground"
+                        )}
+                      />
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={cn(
-                        "h-4 w-4",
-                        star <= review.rating
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-muted-foreground"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">{review.comment}</p>
-            </CardContent>
-          </Card>
-        ))}
+                <p className="text-muted-foreground leading-relaxed">{review.comment}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

@@ -7,7 +7,22 @@ export async function GET(request: NextRequest) {
   if (!productId) return NextResponse.json({ success: false, message: "Нет ID" }, { status: 400 })
 
   const reviews = await getReviews(productId)
-  return NextResponse.json({ success: true, data: { reviews, rating: { average: 4.5, count: reviews.length } } })
+  
+  // Реальный расчет среднего рейтинга
+  const average = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : 0
+
+  return NextResponse.json({ 
+    success: true, 
+    data: { 
+      reviews, 
+      rating: { 
+        average: parseFloat(average.toFixed(1)), 
+        count: reviews.length 
+      } 
+    } 
+  })
 }
 
 export async function POST(request: NextRequest) {
