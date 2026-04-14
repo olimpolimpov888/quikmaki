@@ -22,6 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toggleItem, isFavorite } = useFavoritesStore()
   const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const isAddingRef = useRef(false)
 
   const inCart = items.some((item) => item.id === product.id)
@@ -61,8 +62,8 @@ export function ProductCard({ product }: ProductCardProps) {
         className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer h-full rounded-xl"
         onClick={handleViewDetails}
       >
-        <div className="relative aspect-[4/3] overflow-hidden">
-          {product.image ? (
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          {!imgError && product.image ? (
             <Image
               src={product.image}
               alt={product.name}
@@ -70,10 +71,15 @@ export function ProductCard({ product }: ProductCardProps) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               crossOrigin="anonymous"
               unoptimized
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-muted flex items-center justify-center">
-              <span className="text-4xl">🍣</span>
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <span className="text-4xl">
+                {product.category === 'pizza' ? '🍕' : 
+                 product.category === 'desserts' ? '🍰' : 
+                 product.category === 'drinks' ? '' : '🍣'}
+              </span>
             </div>
           )}
 
