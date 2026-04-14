@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
       { auth: { persistSession: false } }
     )
 
-    // Начало и конец сегодняшнего дня
+    // Используем UTC, чтобы совпадало с Supabase TIMESTAMPTZ
     const now = new Date()
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).toISOString()
+    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)).toISOString()
 
     // 1. Заказы сегодня
     const { data: todayOrders } = await adminSupabase
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .gte('created_at', todayStart)
       .lt('created_at', todayEnd)
 
-    // 2. Выручка сегодня
+    // 2. Выручка сегодня (исключаем отмененные)
     const todayRevenue = todayOrders
       ?.filter(o => o.status !== 'cancelled' && o.status !== 'payment_cancelled')
       .reduce((sum, o) => sum + (o.total || 0), 0) || 0

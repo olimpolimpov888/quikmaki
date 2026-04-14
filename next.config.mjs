@@ -5,15 +5,17 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
-        port: '',
         pathname: '/**',
+      },
+      // ⚠️ ЗАМЕНИ 'olimpolimpov888-7705' НА ID СВОЕГО ПРОЕКТА SUPABASE
+      {
+        protocol: 'https',
+        hostname: 'olimpolimpov888-7705.supabase.co',
+        pathname: '/storage/v1/object/public/**',
       },
     ],
     formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 дней кэш
-    dangerouslyAllowSVG: false,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 }
 

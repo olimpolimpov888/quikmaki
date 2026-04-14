@@ -35,7 +35,19 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Укажите статус" }, { status: 400 })
     }
 
-    await updateOrderStatus(orderId, status)
+    // Используем admin client чтобы обойти RLS и менять статус любого заказа
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
+
+    const { error } = await adminSupabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId)
+
+    if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 })

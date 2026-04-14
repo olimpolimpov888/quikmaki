@@ -293,6 +293,7 @@ export function AdminProducts() {
                         width={48}
                         height={48}
                         className="rounded-lg object-cover"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
