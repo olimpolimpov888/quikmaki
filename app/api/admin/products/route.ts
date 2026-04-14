@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       name: p.name,
       description: p.description,
       price: p.price,
-      image: p.image_url,
+      image: p.image_url || '',
       category: p.categories?.slug || '',
       category_name: p.categories?.name || '',
       weight: p.weight,
