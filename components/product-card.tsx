@@ -62,15 +62,20 @@ export function ProductCard({ product }: ProductCardProps) {
         onClick={handleViewDetails}
       >
         <div className="relative aspect-[4/3] overflow-hidden">
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-cover rounded-t-xl transition-transform duration-300 group-hover:scale-105"
-            style={{ borderTopLeftRadius: '0.75rem', borderTopRightRadius: '0.75rem' }}
-            crossOrigin="anonymous"
-            unoptimized
-          />
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              crossOrigin="anonymous"
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <span className="text-4xl">🍣</span>
+            </div>
+          )}
 
           {/* Favorite Button */}
           <button
