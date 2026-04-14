@@ -97,6 +97,7 @@ export function ProductDetails({ product, category, relatedProducts }: ProductDe
             className="object-cover"
             crossOrigin="anonymous"
             priority
+            unoptimized
           />
         </div>
 

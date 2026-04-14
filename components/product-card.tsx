@@ -69,6 +69,7 @@ export function ProductCard({ product }: ProductCardProps) {
             className="object-cover rounded-t-xl transition-transform duration-300 group-hover:scale-105"
             style={{ borderTopLeftRadius: '0.75rem', borderTopRightRadius: '0.75rem' }}
             crossOrigin="anonymous"
+            unoptimized
           />
 
           {/* Favorite Button */}
