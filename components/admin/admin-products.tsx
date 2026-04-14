@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -76,6 +76,9 @@ export function AdminProducts() {
     isNew: false,
     sortOrder: 0,
   })
+  const [imagePreview, setImagePreview] = useState<string>("")
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -135,7 +138,58 @@ export function AdminProducts() {
       isNew: product.isNew,
       sortOrder: product.sortOrder,
     })
+    setImagePreview(product.image || "")
     setDialogOpen(true)
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Проверка размера
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Файл слишком большой (макс 5 МБ)")
+      return
+    }
+
+    // Проверка типа
+    if (!file.type.startsWith('image/')) {
+      toast.error("Только изображения")
+      return
+    }
+
+    // Показываем превью сразу
+    const previewUrl = URL.createObjectURL(file)
+    setImagePreview(previewUrl)
+    setUploadingImage(true)
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('image', file)
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formDataUpload,
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setFormData({ ...formData, image: data.imageUrl })
+        toast.success("Фото загружено!")
+      } else {
+        toast.error(data.message || "Ошибка загрузки")
+        // Откатываем превью если загрузка не удалась
+        setImagePreview(formData.image)
+      }
+    } catch (err) {
+      toast.error("Ошибка загрузки фото")
+      setImagePreview(formData.image)
+    } finally {
+      setUploadingImage(false)
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ""
+      }
+    }
   }
 
   const handleSave = async () => {
@@ -358,12 +412,80 @@ export function AdminProducts() {
               </Select>
             </div>
 
-            {/* URL изображения */}
+            {/* Загрузка изображения */}
             <div className="space-y-2">
-              <Label>URL изображения</Label>
+              <Label>Изображение товара</Label>
+              
+              {/* Превью */}
+              {imagePreview && (
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted border border-border">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreview("")
+                      setFormData({ ...formData, image: "" })
+                    }}
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+              )}
+
+              {/* Кнопка загрузки */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={uploadingImage}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full gap-2"
+              >
+                {uploadingImage ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Загрузка...
+                  </>
+                ) : (
+                  <>
+                    <ImageOff className="h-4 w-4" />
+                    {imagePreview ? "Заменить фото" : "Загрузить фото"}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                PNG, JPG, WEBP. Максимум 5 МБ
+              </p>
+
+              {/* Или ввести URL вручную */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">или</span>
+                </div>
+              </div>
               <Input
                 value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, image: e.target.value })
+                  if (e.target.value) setImagePreview(e.target.value)
+                }}
                 placeholder="https://images.unsplash.com/..."
               />
             </div>
