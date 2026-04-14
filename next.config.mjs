@@ -10,7 +10,7 @@ const nextConfig = {
       // ⚠️ ЗАМЕНИ 'olimpolimpov888-7705' НА ID СВОЕГО ПРОЕКТА SUPABASE
       {
         protocol: 'https',
-        hostname: 'olimpolimpov888-7705.supabase.co',
+        hostname: 'ndyebagpfzycavdhilmw.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
     ],
