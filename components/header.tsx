@@ -26,8 +26,6 @@ import { CartDrawer } from "./cart-drawer"
 import { AuthModal } from "./auth-modal"
 import { ThemeToggle } from "./theme-provider"
 import { GlobalSearch } from "./global-search"
-import { useI18n } from "@/lib/i18n-store"
-import type { Locale } from "@/lib/i18n"
 import { useRestaurantStatus } from "./restaurant-status"
 import Link from "next/link"
 
@@ -40,7 +38,6 @@ export function Header() {
   const [isAdmin, setIsAdmin] = useState(false)
   const { selectedCity, setCity, getTotalItems } = useCartStore()
   const { user, isAuthenticated } = useAuthStore()
-  const { locale, setLocale, t } = useI18n()
   const { isOpen, loading } = useRestaurantStatus()
   const cartItemsCount = getTotalItems()
 
@@ -77,10 +74,6 @@ export function Header() {
         setCities(["Екатеринбург", "Москва", "Тюмень"])
       })
   }, [])
-
-  const toggleLocale = () => {
-    setLocale(locale === "ru" ? "en" : "ru")
-  }
 
   const navigateToProfile = () => {
     if (isAuthenticated) {
@@ -124,16 +117,6 @@ export function Header() {
 
           {/* Theme Toggle */}
           <ThemeToggle />
-
-          {/* Language Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleLocale}
-            className="text-muted-foreground hover:text-foreground font-mono text-xs w-10"
-          >
-            {locale === "ru" ? "EN" : "RU"}
-          </Button>
 
           {/* Favorites */}
           <Link href="/favorites">
