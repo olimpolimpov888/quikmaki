@@ -346,6 +346,21 @@ export function Header() {
                     Войти
                   </Button>
                 )}
+
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2 w-full border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => { router.push("/admin"); setMobileMenuOpen(false); }}
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="M2 17l10 5 10-5"/>
+                      <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Админка
+                  </Button>
+                )}
               </div>
             </SheetContent>
           </Sheet>
