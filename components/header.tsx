@@ -101,12 +101,14 @@ export function Header() {
               Доставка роллов и пиццы
             </span>
           </div>
-          {!loading && (
-            <Badge variant={isOpen ? "default" : "destructive"} className="text-xs">
-              {isOpen ? "Открыто" : "Закрыто"}
-            </Badge>
-          )}
         </button>
+        
+        {/* Status Badge (Moved out of button, closer to logo but separated from search) */}
+        {!loading && (
+          <Badge variant={isOpen ? "default" : "destructive"} className="text-xs mr-4">
+            {isOpen ? "Открыто" : "Закрыто"}
+          </Badge>
+        )}
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
