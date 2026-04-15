@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -57,8 +57,19 @@ export function ProductDetails({ product, category, relatedProducts }: ProductDe
     toast.success(favorite ? "Удалено из избранного" : "Добавлено в избранное")
   }
 
-  // Demo rating
-  const demoRating = { average: 4.7, count: 23 }
+  // Реальный рейтинг из базы
+  const [realRating, setRealRating] = useState<{ average: number; count: number }>({ average: 0, count: 0 })
+
+  useEffect(() => {
+    fetch(`/api/reviews?productId=${product.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setRealRating(data.data.rating || { average: 0, count: 0 })
+        }
+      })
+      .catch(console.error)
+  }, [product.id])
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -119,7 +130,7 @@ export function ProductDetails({ product, category, relatedProducts }: ProductDe
                     key={star}
                     className={cn(
                       "h-4 w-4",
-                      star <= Math.round(demoRating.average)
+                      star <= Math.round(realRating.average)
                         ? "fill-yellow-400 text-yellow-400"
                         : "text-muted-foreground"
                     )}
@@ -127,7 +138,13 @@ export function ProductDetails({ product, category, relatedProducts }: ProductDe
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">
-                {demoRating.average} ({demoRating.count} отзывов)
+                {realRating.average > 0 ? (
+                  <>
+                    {realRating.average.toFixed(1)} ({realRating.count} отзывов)
+                  </>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Нет отзывов</span>
+                )}
               </span>
             </div>
 
