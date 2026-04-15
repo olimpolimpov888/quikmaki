@@ -179,7 +179,7 @@ export function GlobalSearch() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 max-h-[480px] overflow-y-auto">
+        <div className="absolute top-full left-0 mt-2 w-[500px] bg-popover border border-border rounded-xl shadow-xl z-50 max-h-[480px] overflow-y-auto">
           {query.trim() === "" && recentSearches.length > 0 ? (
             /* Recent Searches */
             <div className="p-3">
