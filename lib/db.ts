@@ -525,48 +525,46 @@ export async function getWorkingHours() {
 export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?: string; nextCloseTime?: string }> {
   const supabase = await createClient()
   
-  // Исправление: Принудительно берем время по Москве (UTC+3), так как сервер (Vercel) работает в UTC
+  // Получаем текущее время по Москве (UTC+3) независимо от сервера
   const now = new Date()
-  const moscowTimeStr = now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })
-  const moscowDate = new Date(moscowTimeStr)
-  
-  const dayOfWeek = moscowDate.getDay() // 0=Вс, 1=Пн, ...
-  const currentTime = moscowDate.toTimeString().slice(0, 5) // "HH:MM"
+  const moscowTimeStr = now.toLocaleTimeString('en-GB', { 
+    timeZone: 'Europe/Moscow', 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
+  }) // Вернет "16:42"
 
-  const { data } = await supabase
+  const moscowDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
+  const dayOfWeek = moscowDate.getDay() // 0=Вс, 1=Пн...
+
+  console.log(`[Restaurant Status] Moscow Time: ${moscowTimeStr}, Day: ${dayOfWeek}`)
+
+  const { data, error } = await supabase
     .from('working_hours')
     .select('*')
     .eq('day_of_week', dayOfWeek)
     .eq('is_active', true)
     .single()
 
-  if (!data) {
-    // Ресторан не работает в этот день
-    return { open: false }
+  if (error || !data) {
+    console.error('[Restaurant Status] DB Error:', error)
+    return { open: true } // Если ошибка БД, считаем открытым по умолчанию
   }
 
-  // Обрезаем секунды для корректного сравнения строк (DB возвращает HH:MM:SS)
-  const openTime = data.open_time.substring(0, 5)
-  const closeTime = data.close_time.substring(0, 5)
-  const breakStart = data.break_start ? data.break_start.substring(0, 5) : null
-  const breakEnd = data.break_end ? data.break_end.substring(0, 5) : null
+  // База возвращает "10:00:00", берем первые 5 символов "10:00"
+  const openTime = String(data.open_time).substring(0, 5)
+  const closeTime = String(data.close_time).substring(0, 5)
 
-  // Проверяем перерыв
-  if (breakStart && breakEnd && currentTime >= breakStart && currentTime <= breakEnd) {
-    return { open: false, nextOpenTime: breakEnd }
-  }
+  console.log(`[Restaurant Status] Open: ${openTime}, Close: ${closeTime}, Current: ${moscowTimeStr}`)
 
-  // Проверяем рабочие часы
-  if (currentTime >= openTime && currentTime <= closeTime) {
+  // Сравниваем строки "HH:MM"
+  if (moscowTimeStr >= openTime && moscowTimeStr <= closeTime) {
+    console.log('[Restaurant Status] Result: OPEN')
     return { open: true, nextCloseTime: closeTime }
   }
 
-  // Ресторан закрыт
-  if (currentTime < openTime) {
-    return { open: false, nextOpenTime: openTime }
-  }
-
-  return { open: false, nextOpenTime: 'Следующий день' }
+  console.log('[Restaurant Status] Result: CLOSED')
+  return { open: false, nextOpenTime: moscowTimeStr < openTime ? openTime : 'Завтра' }
 }
 
 // ========================
