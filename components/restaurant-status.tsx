@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Clock } from "lucide-react"
 
@@ -9,26 +9,31 @@ export function useRestaurantStatus() {
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch("/api/restaurant")
-        const data = await res.json()
-        if (data.success) {
-          setIsOpen(data.data.isOpen)
-          setMessage(data.data.message)
-        }
-      } catch {
-        setIsOpen(true) // По умолчанию считаем открытым при ошибке
-      } finally {
-        setLoading(false)
+  const fetchStatus = useCallback(async () => {
+    try {
+      // Добавляем timestamp чтобы избежать кэширования
+      const res = await fetch(`/api/restaurant?t=${Date.now()}`)
+      const data = await res.json()
+      if (data.success) {
+        setIsOpen(data.data.isOpen)
+        setMessage(data.data.message)
+      } else {
+        // Если ошибка, считаем открытым
+        setIsOpen(true)
       }
+    } catch {
+      setIsOpen(true)
+    } finally {
+      setLoading(false)
     }
-    fetchStatus()
-    // Обновляем каждые 5 минут
-    const interval = setInterval(fetchStatus, 5 * 60 * 1000)
-    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    fetchStatus()
+    // Обновляем статус каждые 30 секунд
+    const interval = setInterval(fetchStatus, 30 * 1000)
+    return () => clearInterval(interval)
+  }, [fetchStatus])
 
   return { isOpen, message, loading }
 }
@@ -40,6 +45,8 @@ export function ClosedModal() {
   useEffect(() => {
     if (!loading && isOpen === false) {
       setShowModal(true)
+    } else {
+      setShowModal(false)
     }
   }, [isOpen, loading])
 
