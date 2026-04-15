@@ -57,30 +57,30 @@ function ProfileTabs({ initialTab }: { initialTab: TabValue }) {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="space-y-6">
-          <TabsList className="grid grid-cols-3 sm:grid-cols-6 gap-1 w-full max-w-2xl">
-            <TabsTrigger value="profile" className="flex items-center gap-1 text-xs sm:text-sm">
+          <TabsList className="flex overflow-x-auto gap-2 pb-2 sm:grid sm:grid-cols-6 sm:overflow-visible sm:pb-0 w-full max-w-2xl bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="profile" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Профиль</span>
+              <span>Профиль</span>
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="orders" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">Заказы</span>
+              <span>Заказы</span>
             </TabsTrigger>
-            <TabsTrigger value="favorites" className="flex items-center gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="favorites" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Избранное</span>
+              <span>Избранное</span>
             </TabsTrigger>
-            <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="loyalty" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <Star className="h-4 w-4" />
-              <span className="hidden sm:inline">Бонусы</span>
+              <span>Бонусы</span>
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="flex items-center gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="addresses" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">Адреса</span>
+              <span>Адреса</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="settings" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap shrink-0 text-sm data-[state=active]:bg-background">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Настройки</span>
+              <span>Настройки</span>
             </TabsTrigger>
           </TabsList>
 

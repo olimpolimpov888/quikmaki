@@ -90,7 +90,7 @@ export function CategoryNav({ activeCategory, onCategoryChange }: CategoryNavPro
         <div
           ref={scrollRef}
           onScroll={checkScrollButtons}
-          className="flex gap-2 py-3 overflow-x-auto scrollbar-hide"
+          className="flex gap-2 py-3 overflow-x-auto scrollbar-hide px-1"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {categories

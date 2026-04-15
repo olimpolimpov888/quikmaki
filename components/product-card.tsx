@@ -114,21 +114,21 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-foreground mb-1 truncate">
+        <CardContent className="p-3 sm:p-4">
+          <h3 className="font-semibold text-foreground mb-1 text-sm sm:text-base truncate">
             {product.name}
           </h3>
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[2.5rem]">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
             {product.description}
           </p>
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-foreground">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-base sm:text-lg font-bold text-foreground">
               {product.price.toLocaleString("ru-RU")} ₽
             </span>
             <Button
               size="sm"
               className={cn(
-                "transition-all duration-200",
+                "transition-all duration-200 h-9 sm:h-10 px-3 sm:px-4",
                 inCart
                   ? "bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -153,7 +153,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4 mr-1 hidden sm:block" />
                   В корзину
                 </>
               )}
