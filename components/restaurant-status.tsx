@@ -14,6 +14,13 @@ export function useRestaurantStatus() {
       // Добавляем timestamp чтобы избежать кэширования
       const res = await fetch(`/api/restaurant?t=${Date.now()}`)
       const data = await res.json()
+      
+      // 🔴 ВЫВОД ИНФОРМАЦИИ В КОНСОЛЬ БРАУЗЕРА 🔴
+      console.log(" Restaurant API Response:", data)
+      if (data.data?.debug) {
+        console.log("🔍 Debug Info:", data.data.debug)
+      }
+
       if (data.success) {
         setIsOpen(data.data.isOpen)
         setMessage(data.data.message)
@@ -21,7 +28,8 @@ export function useRestaurantStatus() {
         // Если ошибка, считаем открытым
         setIsOpen(true)
       }
-    } catch {
+    } catch (err) {
+      console.error("❌ Failed to fetch restaurant status:", err)
       setIsOpen(true)
     } finally {
       setLoading(false)
