@@ -7,10 +7,12 @@ export async function GET(request: NextRequest) {
   if (!productId) return NextResponse.json({ success: false, message: "Нет ID" }, { status: 400 })
 
   const reviews = await getReviews(productId)
+
+  // Реальный расчет среднего рейтинга (строго типизируем, чтобы убрать null)
+  const validReviews = reviews.filter((r): r is NonNullable<typeof r> => r !== null && r.rating !== undefined)
   
-  // Реальный расчет среднего рейтинга
-  const average = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+  const average = validReviews.length > 0
+    ? validReviews.reduce((sum, r) => sum + r.rating, 0) / validReviews.length
     : 0
 
   return NextResponse.json({ 
