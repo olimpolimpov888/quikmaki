@@ -522,23 +522,29 @@ export async function getWorkingHours() {
   return data || []
 }
 
-export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?: string; nextCloseTime?: string }> {
+export async function isRestaurantOpen(): Promise<{ 
+  open: boolean; 
+  nextOpenTime?: string; 
+  nextCloseTime?: string;
+  debug?: any; // Для отладки
+}> {
   const supabase = await createClient()
   
-  // Получаем текущее время по Москве (UTC+3) независимо от сервера
-  const now = new Date()
-  const moscowTimeStr = now.toLocaleTimeString('en-GB', { 
+  // 1. Текущее время на сервере (UTC)
+  const nowUTC = new Date()
+  
+  // 2. Текущее время в Москве
+  const moscowTimeStr = nowUTC.toLocaleTimeString('en-GB', { 
     timeZone: 'Europe/Moscow', 
     hour: '2-digit', 
     minute: '2-digit',
     hour12: false 
-  }) // Вернет "16:42"
+  })
 
-  const moscowDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
-  const dayOfWeek = moscowDate.getDay() // 0=Вс, 1=Пн...
+  const moscowDate = new Date(nowUTC.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
+  const dayOfWeek = moscowDate.getDay()
 
-  console.log(`[Restaurant Status] Moscow Time: ${moscowTimeStr}, Day: ${dayOfWeek}`)
-
+  // 3. Данные из БД
   const { data, error } = await supabase
     .from('working_hours')
     .select('*')
@@ -546,25 +552,31 @@ export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?
     .eq('is_active', true)
     .single()
 
-  if (error || !data) {
-    console.error('[Restaurant Status] DB Error:', error)
-    return { open: true } // Если ошибка БД, считаем открытым по умолчанию
+  const debugInfo = {
+    serverTimeUTC: nowUTC.toISOString(),
+    moscowTime: moscowTimeStr,
+    dayOfWeek: dayOfWeek,
+    dbData: data,
+    dbError: error
   }
 
-  // База возвращает "10:00:00", берем первые 5 символов "10:00"
+  console.log('[Backend Debug]', JSON.stringify(debugInfo))
+
+  if (error || !data) {
+    return { open: true, debug: { ...debugInfo, reason: 'DB_ERROR_DEFAULT_OPEN' } }
+  }
+
   const openTime = String(data.open_time).substring(0, 5)
   const closeTime = String(data.close_time).substring(0, 5)
 
-  console.log(`[Restaurant Status] Open: ${openTime}, Close: ${closeTime}, Current: ${moscowTimeStr}`)
+  const isOpen = moscowTimeStr >= openTime && moscowTimeStr <= closeTime
 
-  // Сравниваем строки "HH:MM"
-  if (moscowTimeStr >= openTime && moscowTimeStr <= closeTime) {
-    console.log('[Restaurant Status] Result: OPEN')
-    return { open: true, nextCloseTime: closeTime }
+  return { 
+    open: isOpen, 
+    nextCloseTime: isOpen ? closeTime : undefined,
+    nextOpenTime: isOpen ? undefined : (moscowTimeStr < openTime ? openTime : 'Завтра'),
+    debug: { ...debugInfo, openTime, closeTime, isOpen }
   }
-
-  console.log('[Restaurant Status] Result: CLOSED')
-  return { open: false, nextOpenTime: moscowTimeStr < openTime ? openTime : 'Завтра' }
 }
 
 // ========================
