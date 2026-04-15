@@ -94,120 +94,64 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <button onClick={goHome} className="flex items-center gap-2 cursor-pointer group">
-          <div className="flex flex-col">
-            <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">QuikMaki</span>
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              Доставка роллов и пиццы
-            </span>
-          </div>
+      <div className="container mx-auto flex h-16 items-center gap-2 px-2 sm:px-4">
+        
+        {/* 1. Logo & Status (Left) */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={goHome} className="flex items-center gap-2 cursor-pointer group">
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">QuikMaki</span>
+              <span className="text-[10px] text-muted-foreground hidden sm:block leading-tight">
+                Доставка роллов и пиццы
+              </span>
+            </div>
+          </button>
+          
+          {/* Status Badge */}
           {!loading && (
-            <Badge variant={isOpen ? "default" : "destructive"} className="text-xs">
-              {isOpen ? "Открыто" : "Закрыто"}
+            <Badge 
+              variant={isOpen ? "default" : "destructive"} 
+              className="text-[10px] px-1.5 py-0 h-5 sm:h-6 sm:text-xs flex-shrink-0"
+            >
+              <span className="hidden sm:inline">{isOpen ? "Открыто" : "Закрыто"}</span>
+              <span className="sm:hidden">{isOpen ? "🟢" : "🔴"}</span>
             </Badge>
           )}
-        </button>
+        </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
-          {/* Global Search */}
+        {/* 2. Search (Center - Flexible) */}
+        <div className="flex-1 min-w-0 max-w-xl">
           <GlobalSearch />
+        </div>
 
-          {/* Theme Toggle */}
+        {/* 3. Desktop Actions (Right) */}
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
           <ThemeToggle />
-
-          {/* Favorites */}
+          
           <Link href="/favorites">
-            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-              <Heart className="h-4 w-4" />
-              <span>Избранное</span>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Heart className="h-5 w-5" />
             </Button>
           </Link>
 
-          {/* City Selector */}
-          <Dialog open={cityDialogOpen} onOpenChange={setCityDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{selectedCity || "Выберите город"}</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Выберите город</DialogTitle>
-                <DialogDescription>
-                  Выберите ваш город для расчёта доставки
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-2 pt-4">
-                {cities.map((city) => (
-                  <Button
-                    key={city}
-                    variant={selectedCity === city ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => handleCitySelect(city)}
-                  >
-                    {city}
-                  </Button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Phone — hidden on smaller screens to save space */}
-          <a
-            href="tel:+79508634041"
-            className="hidden xl:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-          >
-            <Phone className="h-4 w-4" />
-            <span>+7 (950) 863-40-41</span>
-          </a>
-
-          {/* Free Delivery Badge */}
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-            <Truck className="h-3 w-3 mr-1" />
-            Бесплатная доставка от 800 ₽
-          </Badge>
-
-          {/* Account Button */}
           {isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={navigateToProfile}
-            >
-              <User className="h-4 w-4" />
-              <span>{user?.name || "Профиль"}</span>
+            <Button variant="ghost" size="icon" className="gap-2" onClick={navigateToProfile}>
+              <User className="h-5 w-5" />
             </Button>
           ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => setAuthModalOpen(true)}
-            >
-              <User className="h-4 w-4" />
-              <span>Войти</span>
+            <Button variant="ghost" size="icon" className="gap-2" onClick={() => setAuthModalOpen(true)}>
+              <User className="h-5 w-5" />
             </Button>
           )}
 
-          {/* Admin Panel Link (only for admins) */}
           {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => router.push("/admin")}
-            >
+            <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10" onClick={() => router.push("/admin")}>
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
                 <path d="M2 17l10 5 10-5"/>
                 <path d="M2 12l10 5 10-5"/>
               </svg>
-              <span className="hidden sm:inline">Админка</span>
+              Админка
             </Button>
           )}
 
@@ -233,8 +177,8 @@ export function Header() {
           </Sheet>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="flex md:hidden items-center gap-2">
+        {/* 4. Mobile Actions (Right) */}
+        <div className="flex md:hidden items-center gap-2 flex-shrink-0">
           {/* Mobile Cart */}
           <Sheet>
             <SheetTrigger asChild>
