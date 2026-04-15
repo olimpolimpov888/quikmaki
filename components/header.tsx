@@ -50,7 +50,6 @@ export function Header() {
     fetch(`/api/user/stats?userId=${user.id}`)
       .then(res => res.json())
       .then(data => {
-        // Если у пользователя есть поле role и оно равно 'admin'
         if (data.data?.role === 'admin') {
           setIsAdmin(true)
         } else {
@@ -70,7 +69,6 @@ export function Header() {
         }
       })
       .catch(() => {
-        // Fallback на захардкоженные города
         setCities(["Екатеринбург", "Москва", "Тюмень"])
       })
   }, [])
