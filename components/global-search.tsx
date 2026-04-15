@@ -155,7 +155,7 @@ export function GlobalSearch() {
           ref={inputRef}
           type="search"
           placeholder="Поиск блюд..."
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 w-full"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
