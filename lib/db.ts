@@ -524,10 +524,14 @@ export async function getWorkingHours() {
 
 export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?: string; nextCloseTime?: string }> {
   const supabase = await createClient()
+  
+  // Исправление: Принудительно берем время по Москве (UTC+3), так как сервер (Vercel) работает в UTC
   const now = new Date()
-  // Учитываем часовой пояс — берём текущий день недели
-  const dayOfWeek = now.getDay() // 0=Вс, 1=Пн, ...
-  const currentTime = now.toTimeString().slice(0, 5) // "HH:MM"
+  const moscowTimeStr = now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })
+  const moscowDate = new Date(moscowTimeStr)
+  
+  const dayOfWeek = moscowDate.getDay() // 0=Вс, 1=Пн, ...
+  const currentTime = moscowDate.toTimeString().slice(0, 5) // "HH:MM"
 
   const { data } = await supabase
     .from('working_hours')
@@ -537,21 +541,22 @@ export async function isRestaurantOpen(): Promise<{ open: boolean; nextOpenTime?
     .single()
 
   if (!data) {
-    // Ресторан не работает в этот день — ищем следующий открытый день
+    // Ресторан не работает в этот день
     return { open: false }
   }
 
-  const openTime = data.open_time
-  const closeTime = data.close_time
-  const breakStart = data.break_start
-  const breakEnd = data.break_end
+  // Обрезаем секунды для корректного сравнения строк (DB возвращает HH:MM:SS)
+  const openTime = data.open_time.substring(0, 5)
+  const closeTime = data.close_time.substring(0, 5)
+  const breakStart = data.break_start ? data.break_start.substring(0, 5) : null
+  const breakEnd = data.break_end ? data.break_end.substring(0, 5) : null
 
   // Проверяем перерыв
   if (breakStart && breakEnd && currentTime >= breakStart && currentTime <= breakEnd) {
     return { open: false, nextOpenTime: breakEnd }
   }
 
-  // Проверяем рабочие часы (учитываем что close_time может быть после полуночи)
+  // Проверяем рабочие часы
   if (currentTime >= openTime && currentTime <= closeTime) {
     return { open: true, nextCloseTime: closeTime }
   }
